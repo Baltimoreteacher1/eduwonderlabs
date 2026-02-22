@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Drag-Sort Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f0f4ff;
+    --surface: #ffffff;
+    --surface2: #f7f9ff;
+    --border: #dde3f5;
+    --text: #0f1733;
+    --text2: #4b5680;
+    --accent: #4361ee;
+    --accent-light: #eef0fd;
+    --accent2: #1a1a2e;
+    --good: #059669;
+    --good-bg: #ecfdf5;
+    --good-border: #a7f3d0;
+    --warn: #d97706;
+    --warn-bg: #fffbeb;
+    --warn-border: #fcd34d;
+    --bad: #dc2626;
+    --bad-bg: #fef2f2;
+    --bad-border: #fca5a5;
+    --zone-idle: #f7f9ff;
+    --zone-over: #eef0fd;
+    --radius: 16px;
+    --shadow: 0 2px 12px rgba(67,97,238,.08);
+    --shadow-card: 0 4px 24px rgba(67,97,238,.10);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ─────────────────────────────── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    box-shadow: 0 1px 8px rgba(67,97,238,.06);
+  }
+  .header-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    height: 60px;
+    flex-wrap: wrap;
+    padding: 8px 0;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .logo-text { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 15px; line-height: 1.1; }
+  .logo-sub { font-size: 11px; color: var(--text2); font-weight: 400; }
+
+  .header-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 10px; border-radius: 999px;
+    background: var(--surface2); border: 1px solid var(--border);
+    font-size: 11px; color: var(--text2); font-weight: 600;
+  }
+  .pill strong { color: var(--text); font-weight: 700; }
+
+  /* ── PROGRESS BAR ───────────────────────── */
+  .progress-wrap {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+  }
+  .progress-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+  }
+  .progress-label { font-size: 12px; color: var(--text2); font-weight: 600; white-space: nowrap; }
+  .progress-bar-track {
+    flex: 1;
+    height: 8px;
+    background: var(--border);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #7b93f5);
+    border-radius: 999px;
+    transition: width .4s cubic-bezier(.4,0,.2,1);
+    width: 0%;
+  }
+  .progress-count { font-size: 12px; font-weight: 700; color: var(--accent); white-space: nowrap; }
+
+  /* ── LAYOUT ──────────────────────────────── */
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 20px 16px 40px; }
+  .grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 16px; }
+  @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
+
+  /* ── CARD ────────────────────────────────── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow-card);
+  }
+  .card-title {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 900;
+    font-size: 17px;
+    margin: 0 0 4px 0;
+  }
+  .card-sub { font-size: 13px; color: var(--text2); margin: 0 0 16px 0; }
+
+  /* ── BUTTONS ─────────────────────────────── */
+  .btnrow { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+  button {
+    cursor: pointer; border: none; border-radius: 12px;
+    padding: 10px 16px; font-weight: 700; font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    transition: all .15s ease;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  button:active { transform: scale(.97); }
+  button:focus-visible { outline: 3px solid rgba(67,97,238,.35); outline-offset: 2px; }
+
+  .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 2px 8px rgba(67,97,238,.3); }
+  .btn-primary:hover { background: #3350d8; }
+  .btn-dark { background: var(--accent2); color: #fff; }
+  .btn-dark:hover { background: #2a2a45; }
+  .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+  button:disabled { opacity: .45; cursor: not-allowed; transform: none !important; }
+
+  /* ── BANK ────────────────────────────────── */
+  .bank-wrap {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    background: var(--surface2);
+  }
+  .bank-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px;
+  }
+  .bank-title { font-weight: 700; font-size: 13px; }
+  .bank-hint { font-size: 11px; color: var(--text2); }
+  .drop-area {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    min-height: 50px;
+    align-content: flex-start;
+  }
+  .drop-empty {
+    width: 100%; text-align: center;
+    font-size: 12px; color: var(--text2);
+    padding: 10px 0;
+    font-style: italic;
+  }
+
+  /* ── ZONES ───────────────────────────────── */
+  .zones { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; margin-top: 14px; }
+  @media (max-width: 640px) { .zones { grid-template-columns: 1fr; } }
+
+  .zone {
+    border: 2px dashed var(--border);
+    border-radius: 14px;
+    background: var(--zone-idle);
+    padding: 12px;
+    min-height: 130px;
+    display: flex; flex-direction: column; gap: 10px;
+    transition: border-color .15s, background .15s, box-shadow .15s;
+    position: relative;
+  }
+  .zone.drag-over {
+    border-color: var(--accent);
+    background: var(--zone-over);
+    box-shadow: 0 0 0 4px rgba(67,97,238,.1);
+  }
+  .zone-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .zone-info { flex: 1; }
+  .zone-label { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 14px; }
+  .zone-hint { font-size: 11px; color: var(--text2); margin-top: 2px; }
+  .zone-badge {
+    min-width: 22px; height: 22px;
+    background: var(--accent); color: #fff;
+    border-radius: 999px; font-size: 11px; font-weight: 900;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 6px;
+    transition: transform .2s, background .2s;
+  }
+  .zone-badge.zero { background: var(--border); color: var(--text2); }
+  .place-btn {
+    display: block; width: 100%;
+    background: var(--accent-light); color: var(--accent);
+    border: 1px solid rgba(67,97,238,.2); border-radius: 10px;
+    padding: 7px 10px; font-size: 12px; font-weight: 700;
+    text-align: center;
+    transition: all .15s;
+    margin-top: auto;
+  }
+  .place-btn:hover { background: var(--accent); color: #fff; }
+  .place-btn:disabled { opacity: .35; }
+
+  /* ── CHIPS ───────────────────────────────── */
+  .chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1.5px solid var(--border);
+    background: #fff;
+    font-size: 13px; font-weight: 700;
+    user-select: none;
+    cursor: grab;
+    transition: transform .15s, box-shadow .15s, border-color .15s, background .15s, opacity .15s;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    animation: chipIn .2s cubic-bezier(.4,0,.2,1);
+  }
+  @keyframes chipIn {
+    from { opacity: 0; transform: scale(.85) translateY(4px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .chip[draggable="true"]:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(67,97,238,.15); border-color: var(--accent); }
+  .chip.dragging { opacity: .4; transform: scale(.95); cursor: grabbing; }
+  .chip.selected { box-shadow: 0 0 0 3px rgba(67,97,238,.3); border-color: var(--accent); background: var(--accent-light); }
+  .chip.good { border-color: var(--good); background: var(--good-bg); }
+  .chip.bad  { border-color: var(--bad);  background: var(--bad-bg);  animation: shake .35s ease; }
+  @keyframes shake {
+    0%,100%{ transform: translateX(0); }
+    20%{ transform: translateX(-5px); }
+    40%{ transform: translateX(5px); }
+    60%{ transform: translateX(-4px); }
+    80%{ transform: translateX(4px); }
+  }
+  .chip-tag { font-size: 10px; color: var(--text2); font-weight: 600; }
+  .chip-icon { font-size: 14px; }
+
+  /* ── FEEDBACK BOXES ───────────────────────── */
+  .msg-box {
+    display: none; white-space: pre-wrap;
+    border-radius: 14px; padding: 14px 16px;
+    margin-top: 14px; font-size: 13px;
+    animation: fadeSlideIn .2s ease;
+    line-height: 1.5;
+  }
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .msg-error   { border: 1px solid var(--bad-border);  background: var(--bad-bg);  color: var(--bad);  }
+  .msg-warn    { border: 1px solid var(--warn-border); background: var(--warn-bg); color: var(--warn); }
+  .msg-success { border: 1px solid var(--good-border); background: var(--good-bg); color: var(--good); }
+
+  /* ── WRITING PANEL ────────────────────────── */
+  .writing-section { margin-bottom: 16px; }
+  .section-label {
+    font-size: 12px; font-weight: 700; color: var(--text2);
+    text-transform: uppercase; letter-spacing: .05em;
+    margin: 0 0 6px 0;
+  }
+  .req { color: var(--bad); }
+  textarea {
+    width: 100%;
+    resize: vertical;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    background: var(--surface2);
+    color: var(--text);
+    transition: border-color .15s, box-shadow .15s;
+    line-height: 1.5;
+  }
+  textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(67,97,238,.12); background: #fff; }
+  textarea[readonly] { background: var(--surface2); color: var(--text2); cursor: default; }
+
+  .char-counter {
+    text-align: right; font-size: 11px;
+    color: var(--text2); margin-top: 4px;
+    transition: color .2s;
+  }
+  .char-counter.ok { color: var(--good); font-weight: 700; }
+  .char-counter.warn { color: var(--warn); }
+
+  .rubric {
+    background: var(--surface2); border-radius: 12px;
+    border: 1px solid var(--border);
+    padding: 12px 14px; font-size: 12px;
+    color: var(--text2); line-height: 1.6;
+    margin-top: 10px;
+  }
+  .rubric-title { font-weight: 900; color: var(--text); font-size: 12px; margin-bottom: 6px; }
+  .rubric-row { display: flex; gap: 8px; padding: 3px 0; }
+  .rubric-score {
+    width: 20px; height: 20px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 11px; flex-shrink: 0;
+  }
+  .r4 { background: #d1fae5; color: #065f46; }
+  .r3 { background: #dbeafe; color: #1e40af; }
+  .r2 { background: #fef3c7; color: #92400e; }
+  .r1 { background: #fee2e2; color: #991b1b; }
+
+  /* ── CONFETTI CANVAS ────────────────────── */
+  #confetti-canvas {
+    position: fixed; inset: 0; pointer-events: none; z-index: 100;
+  }
+
+  /* ── KEYBOARD LEGEND ────────────────────── */
+  .kbd-legend {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    padding: 8px 0 2px 0;
+  }
+  .kbd-item { font-size: 11px; color: var(--text2); display: flex; align-items: center; gap: 4px; }
+  kbd {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 5px; padding: 1px 5px; font-size: 11px;
+    font-family: monospace; color: var(--text);
+  }
+
+  /* ── SCROLLBAR ──────────────────────────── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<canvas id="confetti-canvas"></canvas>
+
+<!-- HEADER -->
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">🧩</div>
+      <div>
+        <div class="logo-text" id="uiTitle">Drag-Sort Engine</div>
+        <div class="logo-sub" id="uiMeta">Loading…</div>
+      </div>
+    </div>
+    <div class="header-pills">
+      <span class="pill">Standard <strong id="uiStandard">—</strong></span>
+      <span class="pill">WIDA <strong id="uiWida">—</strong></span>
+      <span class="pill">Mode <strong id="uiMode">—</strong></span>
+    </div>
+  </div>
+</header>
+
+<!-- PROGRESS -->
+<div class="progress-wrap">
+  <div class="progress-inner">
+    <span class="progress-label">Items placed</span>
+    <div class="progress-bar-track"><div class="progress-bar-fill" id="progressFill"></div></div>
+    <span class="progress-count" id="progressCount">0 / 0</span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="wrap">
+  <div class="grid">
+
+    <!-- LEFT: GAME -->
+    <section class="card" aria-label="Sorting game">
+      <p class="card-title" id="uiPrompt">Sort the items into the correct categories.</p>
+      <p class="card-sub" id="uiDirections">Drag items, or click an item then click a zone.</p>
+
+      <div class="btnrow">
+        <button class="btn-ghost" id="btnUndo" type="button" disabled>↩ Undo</button>
+        <button class="btn-ghost" id="btnReset" type="button">⟳ Reset</button>
+        <button class="btn-ghost" id="btnHint" type="button">💡 Hint</button>
+        <button class="btn-primary" id="btnCheck" type="button">✓ Check</button>
+      </div>
+
+      <!-- BANK -->
+      <div class="bank-wrap" id="bankWrap" aria-label="Item bank">
+        <div class="bank-header">
+          <div>
+            <div class="bank-title">Item Bank</div>
+            <div class="bank-hint">Move all items into a category below</div>
+          </div>
+          <div style="font-size:12px;color:var(--text2)">Selected: <strong id="uiSelected">—</strong></div>
+        </div>
+        <div class="drop-area" id="bank"></div>
+      </div>
+
+      <!-- ZONES -->
+      <div class="zones" id="zones"></div>
+
+      <!-- KEYBOARD LEGEND -->
+      <div class="kbd-legend">
+        <span class="kbd-item"><kbd>Tab</kbd> navigate</span>
+        <span class="kbd-item"><kbd>Enter</kbd>/<kbd>Space</kbd> select</span>
+        <span class="kbd-item"><kbd>1</kbd>–<kbd>9</kbd> place in zone</span>
+      </div>
+
+      <!-- MESSAGES -->
+      <div class="msg-box msg-error"   id="errBox"></div>
+      <div class="msg-box msg-warn"    id="warnBox"></div>
+      <div class="msg-box msg-success" id="okBox"></div>
+    </section>
+
+    <!-- RIGHT: WRITING -->
+    <aside class="card" aria-label="Writing panel">
+      <p class="card-title">Writing to Learn <span class="req">*</span></p>
+      <p class="card-sub">Explain your thinking to complete the activity.</p>
+
+      <div class="writing-section">
+        <div class="section-label">Sentence Frame (auto-scaffolded)</div>
+        <textarea id="twrPrompt" rows="4" readonly></textarea>
+      </div>
+
+      <div class="writing-section">
+        <div class="section-label">Your Response <span class="req">*</span></div>
+        <textarea id="twrResponse" rows="5" placeholder="Write your explanation here…" aria-label="Your writing response"></textarea>
+        <div class="char-counter" id="charCounter">0 / — chars</div>
+      </div>
+
+      <div class="btnrow">
+        <button class="btn-ghost" id="btnCopy" type="button">📋 Copy</button>
+        <button class="btn-ghost" id="btnClear" type="button">🗑 Clear</button>
+      </div>
+
+      <div class="writing-section">
+        <div class="section-label">ESOL Supports</div>
+        <textarea id="esolSupports" rows="3" readonly></textarea>
+      </div>
+
+      <div class="rubric">
+        <div class="rubric-title">Success Criteria (4-point)</div>
+        <div class="rubric-row"><span class="rubric-score r4">4</span> Correct sort + clear math vocabulary + checks reasonableness</div>
+        <div class="rubric-row"><span class="rubric-score r3">3</span> Mostly correct + explains strategy</div>
+        <div class="rubric-row"><span class="rubric-score r2">2</span> Some correct + partial explanation</div>
+        <div class="rubric-row"><span class="rubric-score r1">1</span> Incomplete or unclear</div>
+      </div>
+    </aside>
+
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const $ = (id) => document.getElementById(id);
+  const nowIso = () => new Date().toISOString();
+
+  // ── Utilities ──────────────────────────────────────────
+  function safeJsonParse(s){ try{ return JSON.parse(s); }catch(_){ return null; } }
+
+  function base64UrlDecodeToString(b64url){
+    const b64 = (b64url||"").replace(/-/g,"+").replace(/_/g,"/")+"===".slice((b64url.length+3)%4);
+    try{
+      const arr=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
+      return new TextDecoder("utf-8").decode(arr);
+    }catch(_){ return null; }
+  }
+
+  function mulberry32(seed){
+    let a=seed>>>0;
+    return function(){
+      a|=0;a=a+0x6D2B79F5|0;
+      let t=Math.imul(a^a>>>15,1|a);
+      t=t+Math.imul(t^t>>>7,61|t)^t;
+      return((t^t>>>14)>>>0)/4294967296;
+    };
+  }
+  function hashToSeed(str){
+    let h=2166136261;
+    for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619);}
+    return h>>>0;
+  }
+  function shuffleDeterministic(arr,seedStr){
+    const out=arr.slice();
+    const rnd=mulberry32(hashToSeed(seedStr));
+    for(let i=out.length-1;i>0;i--){
+      const j=Math.floor(rnd()*(i+1));
+      [out[i],out[j]]=[out[j],out[i]];
+    }
+    return out;
+  }
+  function escapeHtml(s){
+    return String(s||"")
+      .replaceAll("&","&amp;").replaceAll("<","&lt;")
+      .replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+  }
+  function setBox(id, show, text){
+    const el=$(id);
+    el.style.display=show?"block":"none";
+    el.textContent=text||"";
+  }
+
+  // ── Default Config ─────────────────────────────────────
+  const DEFAULT_CFG = {
+    version:"2.0.0", engine:"dragSort",
+    standard:"6.RP.A.1", title:"Ratios: Sort Representations",
+    prompt:"Sort each item into the correct category.",
+    directions:"Drag items, or click an item then click a category. Keyboard: Tab/Enter/Space/1–9.",
+    widaLevel:"3-4",
+    twr:{ prompt:"" },
+    esolSupports:["Use math words: ratio, fraction, tape diagram, words.","Sentence starter: I put ______ in ______ because ______."],
+    zones:[
+      {id:"ratio",label:"Ratio (a:b)",hint:"Example: 3:4"},
+      {id:"fraction",label:"Fraction",hint:"Example: 3/4"}
+    ],
+    items:[
+      {id:"i1",text:"3:4",correctZone:"ratio",tag:"symbol"},
+      {id:"i2",text:"three to four",correctZone:"ratio",tag:"words"},
+      {id:"i3",text:"3/4",correctZone:"fraction",tag:"symbol"},
+      {id:"i4",text:"3 out of 4",correctZone:"fraction",tag:"words"}
+    ],
+    feedback:{
+      misconceptionRules:[{whenWrongZone:"fraction",forZone:"ratio",message:"Watch out: 3:4 is a ratio (a:b), not a fraction (a/b)."}],
+      hint:"Look at the symbols: ':' usually means ratio, '/' usually means fraction."
+    },
+    mastery:{ requireWritingToFinish:true, minWritingChars:40 },
+    behavior:{ seed:"", allowCheckColors:true, maxHints:3 }
+  };
+
+  function validateCfg(cfg){
+    const errors=[];
+    if(!cfg||typeof cfg!=="object") return{ok:false,errors:["Config is not an object."]};
+    if(typeof cfg.engine!=="string"||cfg.engine!=="dragSort") errors.push("engine must be 'dragSort'");
+    ["standard","title","prompt"].forEach(k=>{ if(typeof cfg[k]!=="string"||!cfg[k].trim()) errors.push(`Missing: ${k}`); });
+    if(!Array.isArray(cfg.zones)||cfg.zones.length===0) errors.push("Missing zones array");
+    if(!Array.isArray(cfg.items)||cfg.items.length===0) errors.push("Missing items array");
+
+    const zoneIds=new Set();
+    (cfg.zones||[]).forEach((z,i)=>{
+      if(!z?.id) errors.push(`zones[${i}].id missing`);
+      if(zoneIds.has(z?.id)) errors.push(`Duplicate zone id: ${z.id}`);
+      zoneIds.add(z?.id);
+      if(!z?.label) errors.push(`zones[${i}].label missing`);
+    });
+    const itemIds=new Set();
+    (cfg.items||[]).forEach((it,i)=>{
+      if(!it?.id) errors.push(`items[${i}].id missing`);
+      if(itemIds.has(it?.id)) errors.push(`Duplicate item id: ${it?.id}`);
+      itemIds.add(it?.id);
+      if(typeof it?.text!=="string") errors.push(`items[${i}].text missing`);
+      if(!it?.correctZone) errors.push(`items[${i}].correctZone missing`);
+      if(it?.correctZone&&zoneIds.size&&!zoneIds.has(it.correctZone)) errors.push(`items[${i}] correctZone not in zones`);
+    });
+    return{ok:errors.length===0,errors};
+  }
+
+  // ── State ─────────────────────────────────────────────
+  let CFG=null;
+  let placements=new Map();
+  let selectedItemId=null;
+  let history=[];
+  let hintCount=0;
+  let lastCheck=null;
+  let draggedItemId=null;
+
+  // ── Config Loading ────────────────────────────────────
+  async function loadCfg(){
+    const url=new URL(window.location.href);
+    const cfgB64=url.searchParams.get("cfg");
+    const cfgUrl=url.searchParams.get("configUrl");
+    if(cfgB64){
+      const str=base64UrlDecodeToString(cfgB64);
+      const obj=str?safeJsonParse(str):null;
+      if(obj) return obj;
+      throw new Error("Invalid cfg parameter.");
+    }
+    if(cfgUrl){
+      const res=await fetch(cfgUrl,{cache:"no-store"});
+      if(!res.ok) throw new Error(`configUrl fetch failed (${res.status})`);
+      return res.json();
+    }
+    return DEFAULT_CFG;
+  }
+
+  // ── Render: Header ─────────────────────────────────────
+  function renderHeader(){
+    $("uiTitle").textContent=CFG.title||"Drag-Sort Engine";
+    $("uiMeta").textContent=`v${CFG.version||"—"} · ${nowIso().slice(0,10)}`;
+    $("uiStandard").textContent=CFG.standard||"—";
+    $("uiWida").textContent=CFG.widaLevel||"—";
+    $("uiMode").textContent=(CFG.behavior?.seed)?"seeded":"default";
+    $("uiPrompt").textContent=CFG.prompt||"Sort the items.";
+    $("uiDirections").textContent=CFG.directions||"";
+  }
+
+  // ── Render: Progress ───────────────────────────────────
+  function renderProgress(){
+    const total=CFG.items.length;
+    const placed=CFG.items.filter(it=>(placements.get(it.id)||"bank")!=="bank").length;
+    const pct=total>0?(placed/total*100):0;
+    $("progressFill").style.width=pct+"%";
+    $("progressCount").textContent=`${placed} / ${total}`;
+  }
+
+  // ── Render: Chip ───────────────────────────────────────
+  function makeChip(item){
+    const el=document.createElement("div");
+    el.className="chip";
+    el.id=`chip_${item.id}`;
+    el.setAttribute("role","button");
+    el.setAttribute("tabindex","0");
+    el.setAttribute("aria-label",`Item: ${item.text}`);
+    el.draggable=true;
+
+    let inner=`<span>${escapeHtml(item.text)}</span>`;
+    if(item.tag) inner+=`<span class="chip-tag">${escapeHtml(item.tag)}</span>`;
+    el.innerHTML=inner;
+
+    // Drag events
+    el.addEventListener("dragstart",(e)=>{
+      draggedItemId=item.id;
+      el.classList.add("dragging");
+      e.dataTransfer.setData("text/plain",item.id);
+      e.dataTransfer.effectAllowed="move";
+    });
+    el.addEventListener("dragend",()=>{
+      el.classList.remove("dragging");
+      draggedItemId=null;
+    });
+
+    // Touch events for mobile
+    let touchStartX, touchStartY, touchClone;
+    el.addEventListener("touchstart",(e)=>{
+      draggedItemId=item.id;
+      setSelected(item.id);
+      const t=e.touches[0];
+      touchStartX=t.clientX; touchStartY=t.clientY;
+      // create ghost
+      touchClone=el.cloneNode(true);
+      touchClone.style.cssText="position:fixed;z-index:999;opacity:.75;pointer-events:none;transform:scale(1.05);";
+      touchClone.style.left=(t.clientX-el.offsetWidth/2)+"px";
+      touchClone.style.top=(t.clientY-el.offsetHeight/2)+"px";
+      document.body.appendChild(touchClone);
+    },{passive:true});
+    el.addEventListener("touchmove",(e)=>{
+      e.preventDefault();
+      const t=e.touches[0];
+      if(touchClone){
+        touchClone.style.left=(t.clientX-el.offsetWidth/2)+"px";
+        touchClone.style.top=(t.clientY-el.offsetHeight/2)+"px";
+      }
+      // highlight zones
+      document.querySelectorAll(".zone").forEach(z=>{
+        const r=z.getBoundingClientRect();
+        const over=t.clientX>=r.left&&t.clientX<=r.right&&t.clientY>=r.top&&t.clientY<=r.bottom;
+        z.classList.toggle("drag-over",over);
+      });
+    },{passive:false});
+    el.addEventListener("touchend",(e)=>{
+      if(touchClone){ document.body.removeChild(touchClone); touchClone=null; }
+      document.querySelectorAll(".zone").forEach(z=>z.classList.remove("drag-over"));
+      const t=e.changedTouches[0];
+      // find target zone
+      const target=document.elementFromPoint(t.clientX,t.clientY);
+      const zoneEl=target?.closest(".zone");
+      if(zoneEl){
+        const zoneId=zoneEl.id.replace("zone_","");
+        if(zoneId) moveItem(item.id,zoneId);
+      }
+      draggedItemId=null;
+    },{passive:true});
+
+    // Click select
+    el.addEventListener("click",()=>setSelected(item.id));
+    el.addEventListener("keydown",(e)=>{
+      if(e.key==="Enter"||e.key===" "){ e.preventDefault(); setSelected(item.id); }
+      // number keys place into zones
+      const n=parseInt(e.key);
+      if(n>=1&&n<=CFG.zones.length){
+        e.preventDefault();
+        moveItem(item.id, CFG.zones[n-1].id);
+      }
+    });
+
+    return el;
+  }
+
+  // ── Render: Zones ──────────────────────────────────────
+  function renderZones(){
+    const zonesEl=$("zones");
+    zonesEl.innerHTML="";
+    CFG.zones.forEach((z,idx)=>{
+      const zone=document.createElement("div");
+      zone.className="zone";
+      zone.id=`zone_${z.id}`;
+      zone.setAttribute("role","region");
+      zone.setAttribute("aria-label",`Category ${z.label}`);
+      zone.setAttribute("tabindex","0");
+
+      zone.innerHTML=`
+        <div class="zone-header">
+          <div class="zone-info">
+            <div class="zone-label">${escapeHtml(z.label)}</div>
+            <div class="zone-hint">${escapeHtml(z.hint||"")}</div>
+          </div>
+          <span class="zone-badge zero" id="badge_${z.id}">0</span>
+        </div>
+        <div class="drop-area" id="drop_${z.id}"></div>
+        <button class="place-btn" type="button" data-zone="${z.id}" aria-label="Place selected item into ${z.label}">
+          Place selected here ${idx<9?`<kbd>${idx+1}</kbd>`:""}
+        </button>
+      `;
+
+      // Drag over / drop
+      zone.addEventListener("dragover",(e)=>{
+        e.preventDefault();
+        zone.classList.add("drag-over");
+      });
+      zone.addEventListener("dragleave",(e)=>{
+        if(!zone.contains(e.relatedTarget)) zone.classList.remove("drag-over");
+      });
+      zone.addEventListener("drop",(e)=>{
+        e.preventDefault();
+        zone.classList.remove("drag-over");
+        const id=e.dataTransfer.getData("text/plain");
+        if(id) moveItem(id,z.id);
+      });
+
+      // Click-to-place button
+      zone.querySelector("button[data-zone]").addEventListener("click",()=>{
+        if(selectedItemId) moveItem(selectedItemId,z.id);
+      });
+
+      // Keyboard: pressing Enter on zone places selected item
+      zone.addEventListener("keydown",(e)=>{
+        if(e.key==="Enter"||e.key===" "){
+          e.preventDefault();
+          if(selectedItemId) moveItem(selectedItemId,z.id);
+        }
+      });
+
+      zonesEl.appendChild(zone);
+    });
+
+    // Bank drop
+    const bankEl=$("bank");
+    bankEl.addEventListener("dragover",(e)=>{ e.preventDefault(); $("bankWrap").style.borderColor="var(--accent)"; });
+    bankEl.addEventListener("dragleave",()=>{ $("bankWrap").style.borderColor=""; });
+    bankEl.addEventListener("drop",(e)=>{
+      e.preventDefault();
+      $("bankWrap").style.borderColor="";
+      const id=e.dataTransfer.getData("text/plain");
+      if(id) moveItem(id,"bank");
+    });
+  }
+
+  // ── Render: All ────────────────────────────────────────
+  function renderAll(){
+    setBox("errBox",false,""); setBox("warnBox",false,""); setBox("okBox",false,"");
+
+    $("bank").innerHTML="";
+    CFG.zones.forEach(z=>{ const a=document.getElementById(`drop_${z.id}`); if(a) a.innerHTML=""; });
+
+    // Compute zone counts for badges
+    const zoneCounts={};
+    CFG.zones.forEach(z=>{ zoneCounts[z.id]=0; });
+
+    CFG.items.forEach(it=>{
+      const chip=makeChip(it);
+      const loc=placements.get(it.id)||"bank";
+      if(loc==="bank"){
+        $("bank").appendChild(chip);
+      }else{
+        const area=document.getElementById(`drop_${loc}`);
+        if(area){ area.appendChild(chip); zoneCounts[loc]=(zoneCounts[loc]||0)+1; }
+        else $("bank").appendChild(chip);
+      }
+    });
+
+    // Empty state for bank
+    if($("bank").children.length===0){
+      const e=document.createElement("div");
+      e.className="drop-empty";
+      e.textContent="All items placed! 🎉";
+      $("bank").appendChild(e);
+    }
+
+    // Update badges
+    CFG.zones.forEach(z=>{
+      const badge=document.getElementById(`badge_${z.id}`);
+      if(badge){
+        const cnt=zoneCounts[z.id]||0;
+        badge.textContent=cnt;
+        badge.className=`zone-badge${cnt===0?" zero":""}`;
+        if(cnt>0){
+          badge.style.transform="scale(1.25)";
+          setTimeout(()=>{ badge.style.transform=""; },200);
+        }
+      }
+    });
+
+    // Update place-btn states
+    document.querySelectorAll("button[data-zone]").forEach(btn=>{
+      btn.disabled=!selectedItemId;
+    });
+
+    $("btnUndo").disabled=history.length===0;
+    $("uiSelected").textContent=selectedItemId||"—";
+
+    // Check colors
+    if(lastCheck && CFG.behavior?.allowCheckColors) applyCheckColors();
+
+    renderProgress();
+    renderWritingPanel();
+    updateCharCounter();
+  }
+
+  // ── Selection ──────────────────────────────────────────
+  function setSelected(itemId){
+    selectedItemId=itemId;
+    CFG.items.forEach(it=>{
+      const el=document.getElementById(`chip_${it.id}`);
+      if(!el) return;
+      el.classList.toggle("selected", it.id===selectedItemId);
+    });
+    $("uiSelected").textContent=selectedItemId||"—";
+    document.querySelectorAll("button[data-zone]").forEach(btn=>{ btn.disabled=!selectedItemId; });
+  }
+
+  // ── Move ───────────────────────────────────────────────
+  function moveItem(itemId,toZone){
+    if(!itemId) return;
+    const from=placements.get(itemId)||"bank";
+    const to=toZone||"bank";
+    if(from===to) return;
+    placements.set(itemId,to);
+    history.push({itemId,from,to,ts:nowIso()});
+    lastCheck=null;
+    if(selectedItemId===itemId) setSelected(null);
+    renderAll();
+  }
+
+  function undo(){
+    const step=history.pop();
+    if(!step) return;
+    placements.set(step.itemId,step.from);
+    lastCheck=null;
+    renderAll();
+  }
+
+  function reset(){
+    placements=new Map();
+    history=[]; hintCount=0; lastCheck=null; selectedItemId=null;
+    renderAll();
+  }
+
+  // ── Check ──────────────────────────────────────────────
+  function check(){
+    setBox("errBox",false,""); setBox("warnBox",false,""); setBox("okBox",false,"");
+    const total=CFG.items.length;
+    const wrong=[]; let correctCount=0, inBank=0;
+
+    for(const it of CFG.items){
+      const placed=placements.get(it.id)||"bank";
+      if(placed==="bank"){ inBank++; continue; }
+      if(placed===it.correctZone) correctCount++;
+      else wrong.push({id:it.id,placed,correct:it.correctZone});
+    }
+    lastCheck={correctCount,total,wrongItems:wrong,inBank};
+
+    if(inBank>0){
+      setBox("warnBox",true,`Keep going — ${inBank} item${inBank>1?"s":""} still in the bank.`);
+      renderAll(); return;
+    }
+    if(wrong.length===0){
+      const gate=writingGateStatus();
+      if(!gate.ok){
+        setBox("warnBox",true,`Sorting is correct ✅\n\nBefore finishing: ${gate.message}`);
+      }else{
+        setBox("okBox",true,"🎉 Perfect!\nYou sorted correctly AND explained your thinking.\n\nYou may move on to the next activity.");
+        launchConfetti();
+      }
+    }else{
+      const msg=buildMisconceptionMessage(wrong);
+      setBox("errBox",true,`Not yet.\nCorrect: ${correctCount}/${total}${msg?"\n\n💡 "+msg:""}\n\nTry again!`);
+    }
+    renderAll();
+  }
+
+  function buildMisconceptionMessage(wrong){
+    if(!CFG.feedback?.misconceptionRules) return "";
+    for(const w of wrong){
+      for(const rule of CFG.feedback.misconceptionRules){
+        if(rule?.whenWrongZone===w.placed&&rule?.forZone===w.correct) return rule.message||"";
+      }
+    }
+    return "";
+  }
+
+  function applyCheckColors(){
+    for(const it of CFG.items){
+      const el=document.getElementById(`chip_${it.id}`);
+      if(!el) continue;
+      el.classList.remove("good","bad");
+      const placed=placements.get(it.id)||"bank";
+      if(placed==="bank") continue;
+      el.classList.add(placed===it.correctZone?"good":"bad");
+    }
+  }
+
+  // ── Hint ───────────────────────────────────────────────
+  function hint(){
+    const max=(typeof CFG.behavior?.maxHints==="number")?CFG.behavior.maxHints:3;
+    if(hintCount>=max){ setBox("warnBox",true,`Hint limit reached (${max}). Try checking and revising.`); return; }
+    hintCount++;
+    const h=CFG.feedback?.hint||"Look for symbols, keywords, and examples in the category headers.";
+    setBox("warnBox",true,`💡 Hint ${hintCount}/${max}:\n${h}`);
+  }
+
+  // ── Writing Panel ──────────────────────────────────────
+  function autoTwrPromptByWida(wida){
+    const w=String(wida||"").toLowerCase();
+    if(w.includes("1")||w.includes("2"))
+      return "I put ______ in ______ because ______.\nOne math word I used is ______.\nMy check is: ______.";
+    if(w.includes("3")||w.includes("4"))
+      return "My strategy was ______ because ______.\nI know it belongs in ______ because ______.\nI checked my answer by ______.";
+    return "Explain your strategy using math vocabulary.\nJustify one tricky choice with evidence (example, rule, or pattern).\nExplain how you checked your work.";
+  }
+
+  function renderWritingPanel(){
+    const twrP=(CFG.twr?.prompt?.trim())||autoTwrPromptByWida(CFG.widaLevel);
+    $("twrPrompt").value=twrP;
+    $("esolSupports").value=(Array.isArray(CFG.esolSupports)?CFG.esolSupports.join("\n"):"");
+  }
+
+  function writingGateStatus(){
+    if(!CFG.mastery?.requireWritingToFinish) return{ok:true,message:""};
+    const min=typeof CFG.mastery.minWritingChars==="number"?CFG.mastery.minWritingChars:40;
+    const txt=$("twrResponse").value||"";
+    if(txt.trim().length<min) return{ok:false,message:`write at least ${min} characters explaining your thinking.`};
+    return{ok:true,message:""};
+  }
+
+  // ── Char Counter ───────────────────────────────────────
+  function updateCharCounter(){
+    const min=(CFG?.mastery?.minWritingChars)||40;
+    const txt=$("twrResponse").value||"";
+    const cnt=txt.trim().length;
+    const cc=$("charCounter");
+    cc.textContent=`${cnt} / ${min} chars needed`;
+    cc.className="char-counter"+(cnt>=min?" ok":(cnt>0?" warn":""));
+  }
+
+  $("twrResponse").addEventListener("input",()=>{
+    updateCharCounter();
+    // auto-save to sessionStorage
+    try{ sessionStorage.setItem("dse_writing",$("twrResponse").value); }catch(_){}
+  });
+
+  $("btnCopy").addEventListener("click",async()=>{
+    try{
+      await navigator.clipboard.writeText($("twrResponse").value||"");
+      setBox("warnBox",true,"📋 Response copied to clipboard.");
+    }catch(_){
+      setBox("warnBox",true,"Copy failed — select text and copy manually.");
+    }
+  });
+
+  $("btnClear").addEventListener("click",()=>{ $("twrResponse").value=""; updateCharCounter(); });
+
+  // ── Buttons ────────────────────────────────────────────
+  $("btnUndo").addEventListener("click",undo);
+  $("btnReset").addEventListener("click",reset);
+  $("btnHint").addEventListener("click",hint);
+  $("btnCheck").addEventListener("click",check);
+
+  // ── Confetti ───────────────────────────────────────────
+  function launchConfetti(){
+    const canvas=document.getElementById("confetti-canvas");
+    const ctx=canvas.getContext("2d");
+    canvas.width=window.innerWidth;
+    canvas.height=window.innerHeight;
+
+    const colors=["#4361ee","#7b93f5","#fbbf24","#34d399","#f472b6","#60a5fa"];
+    const particles=Array.from({length:120},()=>({
+      x:Math.random()*canvas.width,
+      y:-10-Math.random()*200,
+      r:4+Math.random()*6,
+      color:colors[Math.floor(Math.random()*colors.length)],
+      vx:(Math.random()-.5)*3,
+      vy:3+Math.random()*4,
+      angle:Math.random()*360,
+      spin:(Math.random()-.5)*8
+    }));
+
+    let frame=0, maxFrames=160;
+    function draw(){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      particles.forEach(p=>{
+        ctx.save();
+        ctx.translate(p.x,p.y);
+        ctx.rotate(p.angle*Math.PI/180);
+        ctx.fillStyle=p.color;
+        ctx.globalAlpha=Math.max(0,1-frame/maxFrames);
+        ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r*1.5);
+        ctx.restore();
+        p.x+=p.vx; p.y+=p.vy; p.angle+=p.spin;
+        p.vy+=.06;
+      });
+      frame++;
+      if(frame<maxFrames) requestAnimationFrame(draw);
+      else ctx.clearRect(0,0,canvas.width,canvas.height);
+    }
+    draw();
+  }
+
+  // ── Boot ───────────────────────────────────────────────
+  async function boot(){
+    try{
+      const cfg=await loadCfg();
+      const merged={...DEFAULT_CFG,...cfg};
+
+      const seedBase=(merged.behavior?.seed?.trim())||`${merged.standard}::${merged.title}`;
+      merged.items=shuffleDeterministic(merged.items||[],seedBase);
+
+      // deep merge behavior + mastery
+      if(cfg.behavior) merged.behavior={...DEFAULT_CFG.behavior,...cfg.behavior};
+      if(cfg.mastery)  merged.mastery={...DEFAULT_CFG.mastery,...cfg.mastery};
+
+      const v=validateCfg(merged);
+      if(!v.ok) throw new Error("Config validation failed:\n• "+v.errors.join("\n• "));
+
+      CFG=merged;
+      placements=new Map();
+      history=[]; hintCount=0; lastCheck=null; selectedItemId=null;
+
+      // restore saved writing
+      try{
+        const saved=sessionStorage.getItem("dse_writing");
+        if(saved) $("twrResponse").value=saved;
+      }catch(_){}
+
+      renderHeader();
+      renderZones();
+      renderAll();
+
+      setBox("warnBox",true,"👋 Tip: Drag items into categories, or click an item → press a number key (1, 2…) to place it instantly.");
+    }catch(err){
+      $("uiMeta").textContent="Config error";
+      setBox("errBox",true,String(err?.message||err));
+    }
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>

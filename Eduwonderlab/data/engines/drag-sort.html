@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Drag-Sort Engine</title>
+<style>
+  :root{
+    --bg:#f7f9fc; --card:#fff; --text:#111827; --muted:#6b7280;
+    --border:#d9dfe8; --accent:#2563eb; --accent2:#111827;
+    --good:#065f46; --warn:#92400e; --bad:#b91c1c;
+  }
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);}
+  header{padding:14px 18px;border-bottom:1px solid var(--border);background:#fff;position:sticky;top:0;z-index:5}
+  header .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:space-between}
+  .title{font-weight:900;font-size:16px}
+  .meta{font-size:12px;color:var(--muted)}
+  .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;border:1px solid var(--border);background:#fff;font-size:12px;color:var(--muted)}
+  .wrap{max-width:1200px;margin:0 auto;padding:16px 16px 28px}
+  .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:12px}
+  @media (max-width: 980px){ .grid{grid-template-columns:1fr} }
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;box-shadow:0 1px 0 rgba(0,0,0,.02)}
+  h2{margin:0 0 8px 0;font-size:14px}
+  .small{font-size:12px;color:var(--muted)}
+  .btnrow{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+  button{
+    cursor:pointer;border:none;border-radius:12px;padding:10px 12px;
+    font-weight:900;background:var(--accent);color:#fff;font-size:14px;
+  }
+  button.secondary{background:var(--accent2)}
+  button.ghost{background:#fff;color:#111827;border:1px solid var(--border)}
+  button:disabled{opacity:.55;cursor:not-allowed}
+  button:focus,.chip:focus,.zone:focus,textarea:focus{outline:3px solid rgba(17,24,39,.18);outline-offset:2px}
+  .error{display:none;white-space:pre-wrap;border:1px solid rgba(185,28,28,.35);background:rgba(185,28,28,.06);color:var(--bad);border-radius:14px;padding:12px;margin-top:10px}
+  .success{display:none;white-space:pre-wrap;border:1px solid rgba(6,95,70,.35);background:rgba(6,95,70,.06);color:var(--good);border-radius:14px;padding:12px;margin-top:10px}
+  .warn{display:none;white-space:pre-wrap;border:1px solid rgba(146,64,14,.35);background:rgba(146,64,14,.06);color:var(--warn);border-radius:14px;padding:12px;margin-top:10px}
+
+  /* zones + chips */
+  .zones{display:grid;grid-template-columns:repeat(2, 1fr);gap:10px}
+  @media (max-width: 640px){ .zones{grid-template-columns:1fr} }
+  .zone{
+    border:2px dashed var(--border);border-radius:14px;padding:10px;min-height:120px;background:#fff;
+    display:flex;flex-direction:column;gap:8px;
+  }
+  .zoneHeader{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .zoneTitle{font-weight:900}
+  .zoneHint{font-size:12px;color:var(--muted)}
+  .dropArea{display:flex;flex-wrap:wrap;gap:8px;align-content:flex-start}
+  .bank{border:1px solid var(--border);border-radius:14px;padding:10px;background:#fff}
+  .bankHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .chip{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:8px 10px;border-radius:999px;border:1px solid var(--border);
+    background:#fff;font-size:14px;font-weight:800;user-select:none;
+  }
+  .chip[draggable="true"]{cursor:grab}
+  .chip.dragging{opacity:.55}
+  .chip .tag{font-size:12px;color:var(--muted);font-weight:900}
+  .chip.bad{border-color:rgba(185,28,28,.35);background:rgba(185,28,28,.05)}
+  .chip.good{border-color:rgba(6,95,70,.35);background:rgba(6,95,70,.05)}
+  .chip .x{margin-left:4px;font-weight:900;color:var(--muted)}
+  .chipBtn{background:#fff;border:1px solid var(--border);border-radius:10px;padding:6px 10px;font-weight:900;cursor:pointer}
+
+  /* writing */
+  textarea{width:100%;min-height:120px;resize:vertical;padding:10px 12px;border-radius:12px;border:1px solid var(--border);font-size:14px;font-family:inherit}
+  .req{color:var(--bad);font-weight:900}
+  .kv{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0}
+  .kv .pill{padding:6px 10px}
+  .rubric{font-size:12px;color:var(--muted);line-height:1.4}
+  .rubric strong{color:#111827}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="row">
+    <div>
+      <div class="title" id="uiTitle">Drag-Sort Engine</div>
+      <div class="meta" id="uiMeta">Loading config…</div>
+    </div>
+    <div class="kv">
+      <span class="pill"><span>Standard:</span> <strong id="uiStandard">—</strong></span>
+      <span class="pill"><span>WIDA:</span> <strong id="uiWida">—</strong></span>
+      <span class="pill"><span>Mode:</span> <strong id="uiMode">—</strong></span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="grid">
+
+    <!-- LEFT: GAME -->
+    <section class="card" aria-label="Game">
+      <h2 id="uiPrompt">Sort the items into the correct categories.</h2>
+      <div class="small" id="uiDirections">Drag items, or click an item then click a category. Keyboard supported.</div>
+
+      <div class="btnrow">
+        <button class="ghost" id="btnUndo" type="button" disabled>Undo</button>
+        <button class="ghost" id="btnReset" type="button">Reset</button>
+        <button class="ghost" id="btnHint" type="button">Hint</button>
+        <button class="secondary" id="btnCheck" type="button">Check</button>
+      </div>
+
+      <div class="bank" aria-label="Item bank">
+        <div class="bankHeader">
+          <div><strong>Item Bank</strong> <span class="small">(move items into categories)</span></div>
+          <div class="small" id="uiSelected">Selected: —</div>
+        </div>
+        <div class="dropArea" id="bank"></div>
+      </div>
+
+      <div style="height:10px"></div>
+
+      <div class="zones" id="zones"></div>
+
+      <div class="error" id="errBox"></div>
+      <div class="warn" id="warnBox"></div>
+      <div class="success" id="okBox"></div>
+    </section>
+
+    <!-- RIGHT: WRITING (TWR + ESOL) -->
+    <aside class="card" aria-label="Writing">
+      <h2>Writing to Learn (TWR) <span class="req">*</span></h2>
+      <div class="small">Writing is part of the game. To finish, you must explain your thinking.</div>
+
+      <div style="height:8px"></div>
+
+      <div class="small"><strong>Sentence Frame (auto-scaffolded by WIDA)</strong></div>
+      <textarea id="twrPrompt" readonly></textarea>
+
+      <div style="height:10px"></div>
+
+      <div class="small"><strong>Your Response <span class="req">*</span></strong></div>
+      <textarea id="twrResponse" placeholder="Write here…"></textarea>
+
+      <div class="btnrow">
+        <button class="ghost" id="btnCopy" type="button">Copy Response</button>
+        <button class="ghost" id="btnClear" type="button">Clear</button>
+      </div>
+
+      <div class="small"><strong>ESOL Supports</strong></div>
+      <textarea id="esolSupports" readonly></textarea>
+
+      <div style="height:10px"></div>
+
+      <div class="rubric">
+        <strong>Quick Success Criteria (4-point):</strong><br>
+        <strong>4</strong> correct sort + clear reasoning using math words + checks reasonableness<br>
+        <strong>3</strong> mostly correct + explains strategy<br>
+        <strong>2</strong> some correct + partial explanation<br>
+        <strong>1</strong> incomplete or unclear
+      </div>
+    </aside>
+
+  </div>
+</div>
+
+<script>
+/** =========================
+ * DRAG-SORT ENGINE v1.0.0 (single-file)
+ * Config loading:
+ *  A) ?cfg=<base64url(JSON)>
+ *  B) ?configUrl=<https://.../config.json>
+ *  C) fallback demo config
+ * ========================= */
+
+(function(){
+  "use strict";
+
+  /** ---------- Utilities ---------- */
+  const $ = (id) => document.getElementById(id);
+  const nowIso = () => new Date().toISOString();
+  const clamp = (n,a,b)=>Math.max(a,Math.min(b,n));
+  const safeJsonParse = (s)=>{ try{ return JSON.parse(s); } catch(e){ return null; }};
+
+  function base64UrlDecodeToString(b64url){
+    // base64url -> base64
+    const b64 = (b64url || "").replace(/-/g, "+").replace(/_/g, "/") + "===".slice((b64url.length + 3) % 4);
+    try{
+      const bytes = atob(b64);
+      // handle UTF-8
+      const arr = Uint8Array.from(bytes, c => c.charCodeAt(0));
+      const dec = new TextDecoder("utf-8");
+      return dec.decode(arr);
+    }catch(_){ return null; }
+  }
+
+  function mulberry32(seed){
+    let a = seed >>> 0;
+    return function(){
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+
+  function hashToSeed(str){
+    // deterministic small hash -> seed
+    let h = 2166136261;
+    for(let i=0;i<str.length;i++){
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+  }
+
+  function shuffleDeterministic(arr, seedStr){
+    const out = arr.slice();
+    const rnd = mulberry32(hashToSeed(seedStr));
+    for(let i=out.length-1;i>0;i--){
+      const j = Math.floor(rnd()*(i+1));
+      [out[i],out[j]] = [out[j],out[i]];
+    }
+    return out;
+  }
+
+  function setBox(boxId, show, text){
+    const el = $(boxId);
+    el.style.display = show ? "block" : "none";
+    el.textContent = text || "";
+  }
+
+  /** ---------- Config Schema (validated) ---------- */
+  const DEFAULT_CFG = {
+    version: "1.0.0",
+    engine: "dragSort",
+    standard: "6.RP.A.1",
+    title: "Ratios: Sort Representations",
+    prompt: "Sort each item into the correct category.",
+    directions: "Drag items, or click an item then click a category. Use Undo/Hint/Check.",
+    widaLevel: "3-4",
+    twr: {
+      // optional overrides; otherwise auto generated from widaLevel
+      prompt: ""
+    },
+    esolSupports: [
+      "Use math words: ratio, fraction, tape diagram, words.",
+      "Sentence starter: I put ______ in ______ because ______."
+    ],
+    zones: [
+      { id:"ratio", label:"Ratio (a:b)", hint:"Example: 3:4" },
+      { id:"fraction", label:"Fraction", hint:"Example: 3/4" }
+    ],
+    items: [
+      { id:"i1", text:"3:4", correctZone:"ratio", tag:"symbol" },
+      { id:"i2", text:"three to four", correctZone:"ratio", tag:"words" },
+      { id:"i3", text:"3/4", correctZone:"fraction", tag:"symbol" },
+      { id:"i4", text:"3 out of 4", correctZone:"fraction", tag:"words" }
+    ],
+    feedback: {
+      misconceptionRules: [
+        {
+          whenWrongZone: "fraction",
+          forZone: "ratio",
+          message: "Watch out: 3:4 is a ratio (a:b), not a fraction (a/b)."
+        }
+      ],
+      hint: "Look at the symbols: ':' usually means ratio, '/' usually means fraction."
+    },
+    mastery: {
+      requireWritingToFinish: true,
+      minWritingChars: 40
+    },
+    behavior: {
+      seed: "",           // optional; if empty uses standard+title
+      allowCheckColors: true,
+      maxHints: 3
+    }
+  };
+
+  function validateCfg(cfg){
+    const errors = [];
+    const mustStr = (k)=>{ if(typeof cfg[k] !== "string" || !cfg[k].trim()) errors.push(`Missing/invalid string: ${k}`); };
+    const mustArr = (k)=>{ if(!Array.isArray(cfg[k]) || cfg[k].length===0) errors.push(`Missing/invalid array: ${k}`); };
+
+    if(!cfg || typeof cfg !== "object") return { ok:false, errors:["Config is not an object."] };
+
+    mustStr("engine"); if(cfg.engine !== "dragSort") errors.push("engine must be 'dragSort'");
+    mustStr("standard"); mustStr("title"); mustStr("prompt");
+    mustArr("zones"); mustArr("items");
+
+    // zones
+    const zoneIds = new Set();
+    cfg.zones.forEach((z, idx)=>{
+      if(!z || typeof z !== "object") errors.push(`zones[${idx}] invalid`);
+      else{
+        if(!z.id || typeof z.id !== "string") errors.push(`zones[${idx}].id missing`);
+        if(zoneIds.has(z.id)) errors.push(`Duplicate zone id: ${z.id}`);
+        zoneIds.add(z.id);
+        if(!z.label || typeof z.label !== "string") errors.push(`zones[${idx}].label missing`);
+      }
+    });
+
+    // items
+    const itemIds = new Set();
+    cfg.items.forEach((it, idx)=>{
+      if(!it || typeof it !== "object") errors.push(`items[${idx}] invalid`);
+      else{
+        if(!it.id || typeof it.id !== "string") errors.push(`items[${idx}].id missing`);
+        if(itemIds.has(it.id)) errors.push(`Duplicate item id: ${it.id}`);
+        itemIds.add(it.id);
+        if(typeof it.text !== "string") errors.push(`items[${idx}].text missing`);
+        if(!it.correctZone || typeof it.correctZone !== "string") errors.push(`items[${idx}].correctZone missing`);
+        if(it.correctZone && zoneIds.size && !zoneIds.has(it.correctZone)) errors.push(`items[${idx}] correctZone not in zones: ${it.correctZone}`);
+      }
+    });
+
+    // mastery
+    if(cfg.mastery){
+      if(typeof cfg.mastery.requireWritingToFinish !== "boolean") errors.push("mastery.requireWritingToFinish must be boolean");
+      if(typeof cfg.mastery.minWritingChars !== "number") errors.push("mastery.minWritingChars must be number");
+    }
+
+    // behavior
+    if(cfg.behavior){
+      if(cfg.behavior.maxHints != null && typeof cfg.behavior.maxHints !== "number") errors.push("behavior.maxHints must be number");
+    }
+
+    return { ok: errors.length===0, errors };
+  }
+
+  /** ---------- State ---------- */
+  let CFG = null;
+  let HEADER_MAP = null;
+
+  // placements: itemId -> zoneId ("bank" | zone.id)
+  let placements = new Map();
+  let selectedItemId = null;
+  let history = []; // stack of {itemId, from, to, ts}
+  let hintCount = 0;
+  let lastCheck = null; // {correctCount,total, wrongItems:[]}
+
+  /** ---------- Config Loading ---------- */
+  async function loadCfg(){
+    const url = new URL(window.location.href);
+    const cfgB64 = url.searchParams.get("cfg");
+    const cfgUrl = url.searchParams.get("configUrl");
+
+    if(cfgB64){
+      const jsonStr = base64UrlDecodeToString(cfgB64);
+      const obj = jsonStr ? safeJsonParse(jsonStr) : null;
+      if(obj) return obj;
+      throw new Error("Invalid cfg parameter. (Base64url JSON could not be decoded.)");
+    }
+
+    if(cfgUrl){
+      const res = await fetch(cfgUrl, { cache:"no-store" });
+      if(!res.ok) throw new Error(`configUrl fetch failed (${res.status})`);
+      const obj = await res.json();
+      return obj;
+    }
+
+    // fallback demo
+    return DEFAULT_CFG;
+  }
+
+  /** ---------- UI Render ---------- */
+  function renderHeader(){
+    $("uiTitle").textContent = CFG.title || "Drag-Sort Engine";
+    $("uiMeta").textContent = `${CFG.engine} • ${CFG.version || "—"} • ${nowIso().slice(0,10)}`;
+    $("uiStandard").textContent = CFG.standard || "—";
+    $("uiWida").textContent = CFG.widaLevel || "—";
+    $("uiMode").textContent = (CFG.behavior && CFG.behavior.seed) ? "seeded" : "default";
+
+    $("uiPrompt").textContent = CFG.prompt || "Sort the items into the correct categories.";
+    $("uiDirections").textContent = CFG.directions || "Drag items, or click an item then click a category.";
+  }
+
+  function makeChip(item){
+    const el = document.createElement("div");
+    el.className = "chip";
+    el.id = `chip_${item.id}`;
+    el.setAttribute("role","button");
+    el.setAttribute("tabindex","0");
+    el.setAttribute("aria-label", `Item: ${item.text}`);
+    el.draggable = true;
+
+    el.innerHTML = `
+      <span>${escapeHtml(item.text)}</span>
+      ${item.tag ? `<span class="tag">• ${escapeHtml(item.tag)}</span>` : ""}
+      <span class="x" aria-hidden="true">↔</span>
+    `;
+
+    // drag
+    el.addEventListener("dragstart", (e)=>{
+      el.classList.add("dragging");
+      e.dataTransfer.setData("text/plain", item.id);
+      e.dataTransfer.effectAllowed = "move";
+    });
+    el.addEventListener("dragend", ()=>{
+      el.classList.remove("dragging");
+    });
+
+    // click select
+    el.addEventListener("click", ()=> setSelected(item.id));
+    el.addEventListener("keydown", (e)=>{
+      if(e.key==="Enter" || e.key===" "){ e.preventDefault(); setSelected(item.id); }
+    });
+
+    return el;
+  }
+
+  function renderZones(){
+    const zonesEl = $("zones");
+    zonesEl.innerHTML = "";
+
+    CFG.zones.forEach(z=>{
+      const zone = document.createElement("div");
+      zone.className = "zone";
+      zone.id = `zone_${z.id}`;
+      zone.setAttribute("tabindex","0");
+      zone.setAttribute("role","region");
+      zone.setAttribute("aria-label", `Category ${z.label}`);
+
+      zone.innerHTML = `
+        <div class="zoneHeader">
+          <div>
+            <div class="zoneTitle">${escapeHtml(z.label)}</div>
+            <div class="zoneHint">${escapeHtml(z.hint || "")}</div>
+          </div>
+          <button class="chipBtn" type="button" data-zone="${z.id}">Place Selected</button>
+        </div>
+        <div class="dropArea" id="drop_${z.id}"></div>
+      `;
+
+      // drag over / drop
+      zone.addEventListener("dragover", (e)=>{ e.preventDefault(); });
+      zone.addEventListener("drop", (e)=>{
+        e.preventDefault();
+        const itemId = e.dataTransfer.getData("text/plain");
+        if(itemId) moveItem(itemId, z.id);
+      });
+
+      // click-to-place
+      zone.querySelector("button[data-zone]").addEventListener("click", ()=>{
+        if(selectedItemId) moveItem(selectedItemId, z.id);
+      });
+
+      zonesEl.appendChild(zone);
+    });
+
+    // bank supports dropping too
+    const bankEl = $("bank");
+    bankEl.addEventListener("dragover", (e)=>{ e.preventDefault(); });
+    bankEl.addEventListener("drop", (e)=>{
+      e.preventDefault();
+      const itemId = e.dataTransfer.getData("text/plain");
+      if(itemId) moveItem(itemId, "bank");
+    });
+  }
+
+  function renderAll(){
+    // clear messages
+    setBox("errBox", false, "");
+    setBox("warnBox", false, "");
+    setBox("okBox", false, "");
+
+    // clear areas
+    $("bank").innerHTML = "";
+    CFG.zones.forEach(z=>{ const area = document.getElementById(`drop_${z.id}`); if(area) area.innerHTML = ""; });
+
+    // place chips by current placement
+    CFG.items.forEach(it=>{
+      const chip = makeChip(it);
+      const loc = placements.get(it.id) || "bank";
+      if(loc === "bank"){
+        $("bank").appendChild(chip);
+      }else{
+        const area = document.getElementById(`drop_${loc}`);
+        if(area) area.appendChild(chip);
+        else $("bank").appendChild(chip);
+      }
+    });
+
+    // update buttons
+    $("btnUndo").disabled = history.length === 0;
+
+    // selection label
+    $("uiSelected").textContent = `Selected: ${selectedItemId ? selectedItemId : "—"}`;
+
+    // writing panel
+    renderWritingPanel();
+
+    // if last check exists, optionally color chips
+    if(lastCheck && CFG.behavior && CFG.behavior.allowCheckColors){
+      applyCheckColors();
+    }
+  }
+
+  function escapeHtml(s){
+    return String(s || "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  /** ---------- Selection + Movement ---------- */
+  function setSelected(itemId){
+    selectedItemId = itemId;
+
+    // visual focus highlight by toggling border
+    CFG.items.forEach(it=>{
+      const el = document.getElementById(`chip_${it.id}`);
+      if(!el) return;
+      el.style.boxShadow = (it.id === selectedItemId) ? "0 0 0 3px rgba(37,99,235,.25)" : "none";
+    });
+
+    $("uiSelected").textContent = `Selected: ${selectedItemId || "—"}`;
+  }
+
+  function moveItem(itemId, toZone){
+    if(!itemId) return;
+    const from = placements.get(itemId) || "bank";
+    const to = toZone || "bank";
+    if(from === to) return;
+
+    placements.set(itemId, to);
+    history.push({ itemId, from, to, ts: nowIso() });
+
+    // selection remains, but check colors reset
+    lastCheck = null;
+
+    renderAll();
+  }
+
+  function undo(){
+    const step = history.pop();
+    if(!step) return;
+    placements.set(step.itemId, step.from);
+    lastCheck = null;
+    renderAll();
+  }
+
+  function reset(){
+    placements = new Map();
+    history = [];
+    hintCount = 0;
+    lastCheck = null;
+    selectedItemId = null;
+    renderAll();
+  }
+
+  /** ---------- Checking + Feedback ---------- */
+  function getPlacement(itemId){
+    return placements.get(itemId) || "bank";
+  }
+
+  function check(){
+    setBox("errBox", false, "");
+    setBox("warnBox", false, "");
+    setBox("okBox", false, "");
+
+    const total = CFG.items.length;
+    const wrong = [];
+    let correctCount = 0;
+    let inBank = 0;
+
+    for(const it of CFG.items){
+      const placed = getPlacement(it.id);
+      if(placed === "bank"){ inBank++; continue; }
+      if(placed === it.correctZone){ correctCount++; }
+      else wrong.push({ id: it.id, placed, correct: it.correctZone });
+    }
+
+    lastCheck = { correctCount, total, wrongItems: wrong, inBank };
+
+    // must place all items before final pass
+    if(inBank > 0){
+      setBox("warnBox", true, `Keep going: ${inBank} item(s) still in the bank.`);
+    }
+
+    if(wrong.length === 0 && inBank === 0){
+      // gate with writing if required
+      const gate = writingGateStatus();
+      if(!gate.ok){
+        setBox("warnBox", true, `Sorting is correct ✅\n\nBefore you finish: ${gate.message}`);
+      }else{
+        setBox("okBox", true, "Perfect ✅\nYou sorted correctly AND explained your thinking.\n\nYou may move to the next activity.");
+      }
+    }else{
+      const msg = buildMisconceptionMessage(wrong);
+      setBox("errBox", true, `Not yet.\nCorrect: ${correctCount}/${total}\n${msg ? "\n\n" + msg : ""}`);
+    }
+
+    renderAll();
+  }
+
+  function buildMisconceptionMessage(wrong){
+    if(!CFG.feedback || !Array.isArray(CFG.feedback.misconceptionRules)) return "";
+    const rules = CFG.feedback.misconceptionRules;
+
+    for(const w of wrong){
+      for(const rule of rules){
+        if(rule && rule.whenWrongZone === w.placed && rule.forZone === w.correct){
+          return rule.message || "";
+        }
+      }
+    }
+    return "";
+  }
+
+  function applyCheckColors(){
+    for(const it of CFG.items){
+      const el = document.getElementById(`chip_${it.id}`);
+      if(!el) continue;
+      el.classList.remove("good","bad");
+      const placed = getPlacement(it.id);
+      if(placed === "bank") continue;
+      if(placed === it.correctZone) el.classList.add("good");
+      else el.classList.add("bad");
+    }
+  }
+
+  /** ---------- Hinting ---------- */
+  function hint(){
+    const maxHints = (CFG.behavior && typeof CFG.behavior.maxHints === "number") ? CFG.behavior.maxHints : 3;
+    if(hintCount >= maxHints){
+      setBox("warnBox", true, `Hint limit reached (${maxHints}). Try checking and revising.`);
+      return;
+    }
+    hintCount++;
+    const h = (CFG.feedback && CFG.feedback.hint) ? CFG.feedback.hint : "Look for symbols, keywords, and examples in the category headers.";
+    setBox("warnBox", true, `Hint ${hintCount}/${maxHints}:\n${h}`);
+  }
+
+  /** ---------- Writing Panel (TWR + ESOL) ---------- */
+  function autoTwrPromptByWida(wida){
+    const w = String(wida || "").toLowerCase().trim();
+
+    // WIDA 1–2: sentence builder + word bank emphasis
+    if(w.includes("1") || w.includes("2")){
+      return [
+        "I put ______ in ______ because ______.",
+        "One math word I used is ______.",
+        "My check is: ______."
+      ].join("\n");
+    }
+
+    // WIDA 3–4: structured reasoning
+    if(w.includes("3") || w.includes("4")){
+      return [
+        "My strategy was ______ because ______.",
+        "I know it belongs in ______ because ______.",
+        "I checked my answer by ______."
+      ].join("\n");
+    }
+
+    // WIDA 5–6: more open explanation
+    return [
+      "Explain your strategy using math vocabulary.",
+      "Justify one tricky choice with evidence (example, rule, or pattern).",
+      "Explain how you checked your work."
+    ].join("\n");
+  }
+
+  function renderWritingPanel(){
+    const twrPrompt = (CFG.twr && CFG.twr.prompt && CFG.twr.prompt.trim())
+      ? CFG.twr.prompt.trim()
+      : autoTwrPromptByWida(CFG.widaLevel);
+
+    $("twrPrompt").value = twrPrompt;
+
+    const supports = Array.isArray(CFG.esolSupports) ? CFG.esolSupports : [];
+    const base = supports.join("\n") || "Add esolSupports in the config for targeted scaffolds.";
+    $("esolSupports").value = base;
+  }
+
+  function writingGateStatus(){
+    const require = CFG.mastery && CFG.mastery.requireWritingToFinish;
+    const minChars = (CFG.mastery && typeof CFG.mastery.minWritingChars === "number") ? CFG.mastery.minWritingChars : 40;
+
+    if(!require) return { ok:true, message:"" };
+
+    const txt = $("twrResponse").value || "";
+    if(txt.trim().length < minChars){
+      return { ok:false, message:`write at least ${minChars} characters explaining your thinking.` };
+    }
+    return { ok:true, message:"" };
+  }
+
+  $("btnCopy").addEventListener("click", async ()=>{
+    try{
+      await navigator.clipboard.writeText($("twrResponse").value || "");
+      setBox("warnBox", true, "Copied response to clipboard.");
+    }catch(_){
+      setBox("warnBox", true, "Copy failed (browser permission). Select the text and copy manually.");
+    }
+  });
+
+  $("btnClear").addEventListener("click", ()=>{ $("twrResponse").value=""; });
+
+  /** ---------- Wiring Buttons ---------- */
+  $("btnUndo").addEventListener("click", undo);
+  $("btnReset").addEventListener("click", reset);
+  $("btnHint").addEventListener("click", hint);
+  $("btnCheck").addEventListener("click", check);
+
+  /** ---------- Boot ---------- */
+  async function boot(){
+    setBox("errBox", false, "");
+    setBox("warnBox", false, "");
+    setBox("okBox", false, "");
+
+    try{
+      const cfg = await loadCfg();
+      const merged = { ...DEFAULT_CFG, ...cfg };
+
+      // seed handling
+      const seedBase = (merged.behavior && merged.behavior.seed && merged.behavior.seed.trim())
+        ? merged.behavior.seed.trim()
+        : `${merged.standard}::${merged.title}`;
+
+      // deterministic shuffle items (keeps professional feel + fairness)
+      merged.items = shuffleDeterministic(merged.items || [], seedBase);
+
+      const v = validateCfg(merged);
+      if(!v.ok) throw new Error("Config validation failed:\n• " + v.errors.join("\n• "));
+
+      CFG = merged;
+
+      // init placements (all in bank)
+      placements = new Map();
+      history = [];
+      hintCount = 0;
+      lastCheck = null;
+      selectedItemId = null;
+
+      renderHeader();
+      renderZones();
+      renderAll();
+
+      setBox("warnBox", true,
+        "Tip: Drag OR click an item then click a category.\nKeyboard: Tab to item → Enter to select → Tab to Place Selected."
+      );
+
+    }catch(err){
+      $("uiMeta").textContent = "Config error";
+      setBox("errBox", true, String(err && err.message ? err.message : err));
+    }
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>
