@@ -18,66 +18,68 @@
   .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;border:1px solid var(--border);background:#fff;font-size:12px;color:var(--muted)}
   .wrap{max-width:1200px;margin:0 auto;padding:16px 16px 28px}
   .grid{display:grid;grid-template-columns:1.05fr .95fr;gap:12px}
-  @media (max-width: 980px){ .grid{grid-template-columns:1fr} }
+  @media(max-width:980px){.grid{grid-template-columns:1fr}}
   .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;box-shadow:0 1px 0 rgba(0,0,0,.02)}
   h2{margin:0 0 8px 0;font-size:14px}
   .small{font-size:12px;color:var(--muted)}
   .btnrow{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
-  button{
-    cursor:pointer;border:none;border-radius:12px;padding:10px 12px;
-    font-weight:900;background:var(--accent);color:#fff;font-size:14px;
-  }
+  button{cursor:pointer;border:none;border-radius:12px;padding:10px 12px;font-weight:900;background:var(--accent);color:#fff;font-size:14px;}
   button.secondary{background:var(--accent2)}
   button.ghost{background:#fff;color:#111827;border:1px solid var(--border)}
   button:disabled{opacity:.55;cursor:not-allowed}
   button:focus,input:focus,textarea:focus{outline:3px solid rgba(17,24,39,.18);outline-offset:2px}
-
   .msg{display:none;white-space:pre-wrap;border-radius:14px;padding:12px;margin-top:10px;font-size:13px}
   .msg.err{border:1px solid rgba(185,28,28,.35);background:rgba(185,28,28,.06);color:var(--bad)}
   .msg.warn{border:1px solid rgba(146,64,14,.35);background:rgba(146,64,14,.06);color:var(--warn)}
   .msg.ok{border:1px solid rgba(6,95,70,.35);background:rgba(6,95,70,.06);color:var(--good)}
-
   .problem{border:1px solid var(--border);border-radius:14px;padding:12px;background:#fff}
-  .eq{font-size:22px;font-weight:900;letter-spacing:.2px}
+  .eq{font-size:22px;font-weight:900;letter-spacing:.2px;line-height:1.4}
   .subeq{font-size:13px;color:var(--muted);margin-top:6px}
   .inputs{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
-  input[type="text"]{
-    border:1px solid var(--border);border-radius:12px;padding:10px 12px;font-size:16px;min-width:180px
-  }
+  input[type="text"]{border:1px solid var(--border);border-radius:12px;padding:10px 12px;font-size:16px;min-width:180px}
   .kbd{font-size:12px;color:var(--muted)}
   .steps{margin-top:10px;border-top:1px solid var(--border);padding-top:10px}
   .stepRow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
-  .chip{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;border:1px solid var(--border);background:#fff;font-size:14px;font-weight:900}
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#fff;font-size:13px;font-weight:700}
   .req{color:var(--bad);font-weight:900}
-
   textarea{width:100%;min-height:120px;resize:vertical;padding:10px 12px;border-radius:12px;border:1px solid var(--border);font-size:14px;font-family:inherit}
-  .rubric{font-size:12px;color:var(--muted);line-height:1.4}
+  .rubric{font-size:12px;color:var(--muted);line-height:1.6}
   .rubric strong{color:#111827}
+  .loading{text-align:center;padding:40px;color:var(--muted);font-size:14px}
+  .back-link{font-size:12px;color:var(--muted);text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+  .back-link:hover{color:var(--text)}
+  .open-answer-note{font-size:12px;color:var(--muted);font-style:italic;margin-top:6px}
 </style>
 </head>
 <body>
 
 <header>
   <div class="row">
-    <div>
-      <div class="title" id="uiTitle">Equation Builder</div>
-      <div class="meta" id="uiMeta">Adaptive practice • validation • TWR writing gate</div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <a class="back-link" href="./index.html">← All Games</a>
+      <div>
+        <div class="title" id="uiTitle">Equation Builder</div>
+        <div class="meta" id="uiMeta">Adaptive practice • validation • TWR writing gate</div>
+      </div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <span class="pill"><span>Standard:</span> <strong id="uiStandard">6.EE</strong></span>
-      <span class="pill"><span>WIDA:</span> <strong id="uiWida">3-4</strong></span>
+      <span class="pill"><span>Standard:</span> <strong id="uiStandard">—</strong></span>
+      <span class="pill"><span>WIDA:</span> <strong id="uiWida">—</strong></span>
       <span class="pill"><span>Streak:</span> <strong id="uiStreak">0</strong></span>
+      <span class="pill"><span>Level:</span> <strong id="uiLevel">1</strong></span>
     </div>
   </div>
 </header>
 
 <div class="wrap">
-  <div class="grid">
+  <div id="loadingMsg" class="loading">Loading game…</div>
+
+  <div class="grid" id="gameGrid" style="display:none">
 
     <!-- LEFT: GAME -->
     <section class="card" aria-label="Game">
-      <h2 id="uiPrompt">Solve for <span class="chip">x</span>. Enter your answer.</h2>
-      <div class="small" id="uiDirections">Type your answer. Examples accepted: 0.5 or 1/2. Use Check → feedback → Next.</div>
+      <h2 id="uiPrompt">Solve the problem below.</h2>
+      <div class="small" id="uiDirections">Enter your answer. Fractions like 3/4 are OK. Use Check → read feedback → Next.</div>
 
       <div class="btnrow">
         <button class="ghost" id="btnHint" type="button">Hint</button>
@@ -87,19 +89,21 @@
       </div>
 
       <div class="problem">
-        <div class="eq" id="eqText">3x + 5 = 20</div>
-        <div class="subeq" id="eqSub">Goal: find the value of x that makes the equation true.</div>
-        <div class="inputs">
-          <label for="ans" style="font-weight:900;">x =</label>
+        <div class="eq" id="eqText"></div>
+        <div class="subeq" id="eqSub"></div>
+        <div class="inputs" id="numericInputs">
+          <label for="ans" style="font-weight:900;" id="ansLabel">x =</label>
           <input id="ans" type="text" inputmode="decimal" autocomplete="off" placeholder="ex: 5 or 1/2"/>
           <span class="kbd">Tip: fractions like 3/4 are OK.</span>
         </div>
-
+        <div class="open-answer-note" id="openAnswerNote" style="display:none">
+          This is an open-response problem. Write your full answer in the writing panel →
+        </div>
         <div class="steps" id="stepsBox">
           <div class="small"><strong>Show Your Steps (optional, but helps):</strong></div>
           <div class="stepRow">
             <span class="chip">Step 1</span>
-            <span class="small" id="stepHint">Undo addition/subtraction first.</span>
+            <span class="small" id="stepHint"></span>
           </div>
         </div>
       </div>
@@ -109,32 +113,24 @@
       <div class="msg ok" id="msgOk"></div>
     </section>
 
-    <!-- RIGHT: WRITING (TWR + ESOL) -->
+    <!-- RIGHT: WRITING -->
     <aside class="card" aria-label="Writing">
       <h2>Writing to Learn (TWR) <span class="req">*</span></h2>
       <div class="small">To finish a round, explain your reasoning. Writing is part of the game.</div>
-
       <div style="height:8px"></div>
-
-      <div class="small"><strong>Sentence Frame (auto by WIDA)</strong></div>
+      <div class="small"><strong>Sentence Frame</strong></div>
       <textarea id="twrPrompt" readonly></textarea>
-
       <div style="height:10px"></div>
-
       <div class="small"><strong>Your Response <span class="req">*</span></strong></div>
       <textarea id="twrResponse" placeholder="Write here…"></textarea>
-
       <div class="btnrow">
         <button class="ghost" id="btnCopy" type="button">Copy Response</button>
         <button class="ghost" id="btnClear" type="button">Clear</button>
       </div>
-
       <div class="small"><strong>ESOL Supports</strong></div>
       <textarea id="esolSupports" readonly></textarea>
-
       <div style="height:10px"></div>
-
-      <div class="rubric">
+      <div class="rubric" id="rubricBox">
         <strong>Quick Success Criteria (4-point):</strong><br>
         <strong>4</strong> correct + clear steps + uses math vocabulary + checks solution<br>
         <strong>3</strong> correct + explains strategy<br>
@@ -148,241 +144,533 @@
 
 <script>
 (() => {
-  "use strict";
+"use strict";
 
-  /** =========================
-   * CONFIG (simple v1)
-   * You can later load from configUrl like DragSort.
-   * ========================= */
-  const url = new URL(location.href);
-  const STANDARD = url.searchParams.get("standard") || "6.EE";
-  const WIDA = url.searchParams.get("wida") || "3-4";
+const $ = id => document.getElementById(id);
+const setMsg = (id, show, text) => { const el=$(id); el.style.display=show?"block":"none"; el.textContent=text||""; };
+const clearMsgs = () => { ["msgErr","msgWarn","msgOk"].forEach(id=>setMsg(id,false,"")); };
 
-  /** UI */
-  const $ = (id) => document.getElementById(id);
-  const setMsg = (id, show, text) => { const el=$(id); el.style.display=show?"block":"none"; el.textContent=text||""; };
-  const clearMsgs = () => { setMsg("msgErr",false,""); setMsg("msgWarn",false,""); setMsg("msgOk",false,""); };
+/* ═══════════════════════════════════════════════
+   MATH HELPERS
+═══════════════════════════════════════════════ */
+function ri(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+function rf(a,b,d=1){ // random float to d decimals
+  const v = a + Math.random()*(b-a);
+  return Math.round(v * 10**d) / 10**d;
+}
+function nearEq(a,b){ return Math.abs(a-b)<1e-9; }
 
-  $("uiStandard").textContent = STANDARD;
-  $("uiWida").textContent = WIDA;
+function parseAnswer(s){
+  const t = String(s||"").trim();
+  if(!t) return null;
+  if(/^-?\d+(\.\d+)?$/.test(t)) return Number(t);
+  const m = t.match(/^(-?\d+)\s*\/\s*(-?\d+)$/);
+  if(m){ const b=Number(m[2]); return b===0?null:Number(m[1])/b; }
+  return null;
+}
 
-  function twrByWida(w){
-    const s = String(w||"").toLowerCase();
-    if (s.includes("1") || s.includes("2")) {
-      return [
-        "I did ______ first.",
-        "Then I did ______.",
-        "My answer is ______ because ______."
-      ].join("\\n");
-    }
-    if (s.includes("3") || s.includes("4")) {
-      return [
-        "My strategy was ______ because ______.",
-        "I solved by ______ then ______.",
-        "I checked my answer by ______."
-      ].join("\\n");
-    }
-    return [
-      "Explain your strategy and justify each step.",
-      "Explain how you verified your solution works in the original equation."
-    ].join("\\n");
+/* ═══════════════════════════════════════════════
+   PROBLEM GENERATORS  (keyed by type string)
+   Each returns { text, answer, hint, label, open }
+   open=true  → no numeric answer, TWR is the answer
+═══════════════════════════════════════════════ */
+const GEN = {
+
+  // ── Equations ──────────────────────────────
+  oneStepAdd(){
+    const a=ri(2,15), x=ri(1,18), b=x+a;
+    return { text:`x + ${a} = ${b}`, answer:x, hint:"Subtract the constant from both sides.", label:"x =" };
+  },
+  oneStepSub(){
+    const a=ri(2,12), x=ri(1,15), b=x-a;
+    return { text:`x − ${a} = ${b}`, answer:x, hint:"Add the constant to both sides.", label:"x =" };
+  },
+  oneStepMul(){
+    const a=ri(2,9), x=ri(2,12), b=a*x;
+    return { text:`${a}x = ${b}`, answer:x, hint:"Divide both sides by the coefficient.", label:"x =" };
+  },
+  twoStep(){
+    const a=ri(2,8), x=ri(2,10), c=ri(2,15), b=a*x+c;
+    return { text:`${a}x + ${c} = ${b}`, answer:x, hint:"Undo addition/subtraction first, then divide.", label:"x =" };
+  },
+  twoStepSub(){
+    const a=ri(2,8), x=ri(2,10), c=ri(2,10), b=a*x-c;
+    return { text:`${a}x − ${c} = ${b}`, answer:x, hint:"Add the constant first, then divide both sides.", label:"x =" };
+  },
+  twoStepHalf(){
+    const x=ri(2,18)*2, c=ri(1,10), b=x/2+c;
+    return { text:`x/2 + ${c} = ${b}`, answer:x, hint:"Subtract the constant, then multiply both sides by 2.", label:"x =" };
+  },
+
+  // ── Fractions ──────────────────────────────
+  fractionDivision(){
+    const [a,b,c,d] = [ri(1,5),ri(2,6),ri(1,5),ri(2,6)];
+    const ans = (a/b)/(c/d);
+    const ansStr = Number.isInteger(ans)?String(ans):((a*d)+"/"+( b*c));
+    return { text:`${a}/${b} ÷ ${c}/${d} = ?`, answer:a*d/(b*c), hint:"Multiply by the reciprocal: flip the second fraction and multiply.", label:"Answer:" };
+  },
+  fractionMul(){
+    const [a,b,c,d]=[ri(1,5),ri(2,8),ri(1,5),ri(2,8)];
+    return { text:`${a}/${b} × ${c}/${d} = ?`, answer:(a*c)/(b*d), hint:"Multiply numerators together, then denominators together.", label:"Answer:" };
+  },
+
+  // ── Decimals ──────────────────────────────
+  addSubDecimals(){
+    const a=rf(1,20,1), b=rf(1,10,2);
+    const ops = [[a,b,a+b,"+"],[a,b,a-b,"−"]].filter(x=>x[2]>0);
+    const [x,y,ans,op] = ops[ri(0,ops.length-1)];
+    return { text:`${x} ${op} ${y} = ?`, answer:Math.round(ans*1000)/1000, hint:"Align the decimal points before adding/subtracting.", label:"Answer:" };
+  },
+  multiplyDecimals(){
+    const a=rf(1,9,1), b=rf(1,9,1);
+    const ans=Math.round(a*b*100)/100;
+    return { text:`${a} × ${b} = ?`, answer:ans, hint:"Multiply as whole numbers, then count total decimal places.", label:"Answer:" };
+  },
+  divideDecimals(){
+    const b=rf(0.2,5,1), x=rf(1,9,1);
+    const a=Math.round(b*x*10)/10;
+    return { text:`${a} ÷ ${b} = ?`, answer:Math.round(x*1000)/1000, hint:"Move the decimal in the divisor to make it a whole number; do the same to the dividend.", label:"Answer:" };
+  },
+
+  // ── Integers ──────────────────────────────
+  addIntegers(){
+    const a=ri(-12,12), b=ri(-12,12);
+    return { text:`${a} + (${b}) = ?`, answer:a+b, hint:"Use a number line. Start at the first number and move right (+) or left (−).", label:"Answer:" };
+  },
+  subtractIntegers(){
+    const a=ri(-10,10), b=ri(-10,10);
+    return { text:`${a} − (${b}) = ?`, answer:a-b, hint:"Subtracting a negative is the same as adding a positive: a − (−b) = a + b.", label:"Answer:" };
+  },
+  absoluteValue(){
+    const a=ri(-15,15), b=ri(-15,15);
+    return { text:`|${a}| + |${b}| = ?`, answer:Math.abs(a)+Math.abs(b), hint:"Absolute value means distance from zero — always positive.", label:"Answer:" };
+  },
+
+  // ── Exponents ─────────────────────────────
+  evaluateExponent(){
+    const base=ri(2,6), exp=ri(2,4);
+    return { text:`${base}${["","²","³","⁴"][exp] || "^"+exp} = ?`, answer:base**exp, hint:`${base}^${exp} means multiply ${base} by itself ${exp} times. NOT ${base}×${exp}.`, label:"Answer:" };
+  },
+  orderOfOperations(){
+    const a=ri(2,5), e=ri(2,3), b=ri(2,8), c=ri(1,6);
+    const ans = a**e + b*c;
+    return { text:`${a}${["","²","³"][e]} + ${b} × ${c} = ?`, answer:ans, hint:"Use PEMDAS: exponents first, then multiplication, then addition.", label:"Answer:" };
+  },
+
+  // ── Algebra expressions ───────────────────
+  evaluate(){
+    const a=ri(2,6), b=ri(1,8), x=ri(2,8);
+    const ans=a*x+b;
+    return { text:`Evaluate ${a}x + ${b} when x = ${x}`, answer:ans, hint:`Substitute x = ${x}: ${a}(${x}) + ${b} = ?`, label:"Answer:" };
+  },
+  evaluateSquared(){
+    const a=ri(2,5), b=ri(1,6), x=ri(2,5);
+    const ans=a*(x**2)-b;
+    return { text:`Evaluate ${a}x² − ${b} when x = ${x}`, answer:ans, hint:`Substitute x = ${x}: first compute ${x}², then multiply by ${a}, then subtract ${b}.`, label:"Answer:" };
+  },
+
+  // ── Inequalities ─────────────────────────
+  solveInequality(){
+    const a=ri(2,8), c=ri(2,12), x=ri(1,10);
+    const b=a+c;
+    return { text:`Solve: x + ${c} < ${b}`, answer:a, hint:"Treat it like an equation — subtract the constant from both sides. The answer is the boundary value.", label:"x <" };
+  },
+
+  // ── Geometry: Area ────────────────────────
+  rectangleArea(){
+    const l=ri(3,15), w=ri(3,12);
+    return { text:`Find the area of a rectangle.\nLength = ${l} cm, Width = ${w} cm`, answer:l*w, hint:"Area of rectangle = length × width.", label:"Area =" };
+  },
+  triangleArea(){
+    const b=ri(4,16)*2, h=ri(3,12);
+    return { text:`Find the area of a triangle.\nBase = ${b} m, Height = ${h} m`, answer:0.5*b*h, hint:"Area of triangle = ½ × base × height.", label:"Area =" };
+  },
+  compositeArea(){
+    const l=ri(6,12), w=ri(4,8), cl=ri(2,3), cw=ri(1,2);
+    const ans=l*w - cl*cw;
+    return { text:`A rectangle is ${l}×${w}. A ${cl}×${cw} corner is removed.\nFind the remaining area.`, answer:ans, hint:"Find the total rectangle area, then subtract the removed piece.", label:"Area =" };
+  },
+
+  // ── Geometry: Volume ─────────────────────
+  wholeNumberPrism(){
+    const l=ri(3,10), w=ri(2,8), h=ri(2,8);
+    return { text:`Find the volume of a rectangular prism.\nl = ${l}, w = ${w}, h = ${h}`, answer:l*w*h, hint:"Volume = length × width × height.", label:"Volume =" };
+  },
+  missingDimension(){
+    const w=ri(2,6), h=ri(2,6), l=ri(3,8);
+    const V=l*w*h;
+    return { text:`Volume = ${V} cubic units\nWidth = ${w}, Height = ${h}\nFind the length.`, answer:l, hint:"Rearrange: length = Volume ÷ (width × height).", label:"Length =" };
+  },
+
+  // ── Coordinate geometry ───────────────────
+  sideLength(){
+    const x=ri(1,6), y1=ri(-5,5), y2=ri(-5,5);
+    const dist=Math.abs(y2-y1);
+    return { text:`Points A(${x}, ${y1}) and B(${x}, ${y2}).\nFind the distance AB.`, answer:dist, hint:"Points share the same x-coordinate. Distance = |y₂ − y₁|.", label:"Distance =" };
+  },
+  identifyQuadrant(){
+    const pts=[[-3,4,2],[3,4,1],[3,-4,4],[-3,-4,3]];
+    const [x,y,q]=pts[ri(0,3)];
+    return { text:`Which quadrant contains the point (${x}, ${y})?`, answer:q, hint:"Q1: (+,+)  Q2: (−,+)  Q3: (−,−)  Q4: (+,−)", label:"Quadrant =" };
+  },
+
+  // ── Statistics ────────────────────────────
+  median(){
+    const arr=[ri(2,9),ri(2,9),ri(2,9),ri(2,9),ri(2,9)].sort((a,b)=>a-b);
+    const unique=[...new Set(arr)].sort((a,b)=>a-b);
+    const sorted=arr.sort((a,b)=>a-b);
+    const mid=sorted[Math.floor(sorted.length/2)];
+    return { text:`Find the median of: ${sorted.join(", ")}`, answer:mid, hint:"Sort the values from least to greatest. The median is the middle number.", label:"Median =" };
+  },
+  mean(){
+    const arr=[ri(2,15),ri(2,15),ri(2,15),ri(2,15),ri(2,15)];
+    const s=arr.reduce((a,b)=>a+b,0);
+    const m=s/arr.length;
+    if(!Number.isInteger(m)) return GEN.median(); // only use clean answers
+    return { text:`Find the mean of: ${arr.join(", ")}`, answer:m, hint:"Mean = sum of all values ÷ number of values.", label:"Mean =" };
+  },
+
+  // ── Open-response (no numeric check) ─────
+  wordProblem(template){
+    return { text:template, answer:null, hint:"Read carefully. Write your full solution in the writing panel.", label:"", open:true };
+  },
+  compareIntegers(){
+    const vals=[ri(-8,8),ri(-8,8),ri(-8,8),ri(-8,8),ri(-8,8)];
+    const sorted=[...vals].sort((a,b)=>a-b);
+    return {
+      text:`Order from least to greatest:\n${vals.join(",  ")}`,
+      answer:null, open:true,
+      hint:"Negative numbers are less than zero. More negative = smaller.",
+      label:"",
+      openAnswer: sorted.join(" < ")
+    };
+  },
+};
+
+/* ═══════════════════════════════════════════════
+   MAP config problemType strings → GEN keys
+   by standard/domain family
+═══════════════════════════════════════════════ */
+const TYPE_MAP = {
+  // explicit mappings from config type names
+  oneStepAdd:        ["oneStepAdd","oneStepSub"],
+  oneStepMul:        ["oneStepMul"],
+  twoStep:           ["twoStep","twoStepSub"],
+  fractionDivision:  ["fractionDivision","fractionMul"],
+  fractionDivisionMixed: ["fractionDivision"],
+  addSubDecimals:    ["addSubDecimals"],
+  multiplyDecimals:  ["multiplyDecimals"],
+  divideDecimals:    ["divideDecimals"],
+  addIntegers:       ["addIntegers"],
+  subtractIntegers:  ["subtractIntegers"],
+  absoluteValue:     ["absoluteValue"],
+  compareIntegers:   ["compareIntegers"],
+  evaluateExponent:  ["evaluateExponent"],
+  orderOfOperations: ["orderOfOperations"],
+  evaluate:          ["evaluate"],
+  evaluateSquared:   ["evaluateSquared"],
+  wordToExpression:  ["evaluate"],         // fallback to eval
+  solveInequality:   ["solveInequality"],
+  writeInequality:   ["solveInequality"],
+  graphDescription:  ["solveInequality"],
+  rectangleArea:     ["rectangleArea"],
+  triangleArea:      ["triangleArea"],
+  compositeShape:    ["compositeArea"],
+  wholeNumberPrism:  ["wholeNumberPrism"],
+  fractionalPrism:   ["wholeNumberPrism"],
+  missingDimension:  ["missingDimension"],
+  sideLength:        ["sideLength"],
+  identifyQuadrant:  ["identifyQuadrant"],
+  plotPoint:         ["identifyQuadrant"],
+  distance:          ["sideLength"],
+  reflections:       ["sideLength"],
+  readDotPlot:       ["median"],
+  median:            ["median"],
+  interpretHistogram:["mean"],
+  boxPlot:           ["median","mean"],
+  missingValue:      ["twoStep"],
+  unitRate:          ["twoStep"],
+  scaleModel:        ["evaluate"],
+  wordProblem:       ["wordProblem"],
+};
+
+/* ═══════════════════════════════════════════════
+   DEFAULT problem set (used when no config)
+═══════════════════════════════════════════════ */
+const DEFAULT_LEVELS = {
+  1: ["oneStepAdd","oneStepMul"],
+  2: ["twoStep","twoStepSub"],
+  3: ["twoStepHalf","evaluate"]
+};
+
+/* ═══════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════ */
+let CONFIG = null;
+let streak = 0;
+let difficulty = 1;
+let current = null;
+let minWritingChars = 40;
+
+/* ═══════════════════════════════════════════════
+   LOAD CONFIG
+═══════════════════════════════════════════════ */
+async function loadConfig(){
+  const params = new URL(location.href).searchParams;
+  const configUrl = params.get("configUrl");
+  const standard  = params.get("standard") || "6.EE";
+  const wida      = params.get("wida")     || "3-4";
+
+  if(!configUrl){
+    // no config → use defaults
+    applyConfig({
+      standard, widaLevel:wida,
+      title:"Equation Builder", skill:"Algebra practice",
+      twr:{ prompt: defaultTwr(wida) },
+      esolSupports:[
+        "Key words: equation, variable, inverse operation, isolate, solution.",
+        "Sentence starter: I used ______ to isolate x because ______.",
+        "Check: substitute your answer back."
+      ],
+      problemTypes:[
+        {type:"oneStepAdd",level:1},{type:"oneStepMul",level:1},
+        {type:"twoStep",level:2},{type:"twoStepSub",level:2},
+        {type:"twoStepHalf",level:3},{type:"evaluate",level:3}
+      ]
+    });
+    return;
   }
 
-  $("twrPrompt").value = twrByWida(WIDA);
-  $("esolSupports").value = [
-    "Key words: equation, variable, inverse operation, isolate, solution.",
-    "Sentence starter: I used ______ to isolate x because ______.",
-    "Check: substitute x back into the equation."
-  ].join("\\n");
+  try {
+    const res = await fetch(configUrl);
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const cfg = await res.json();
+    applyConfig(cfg);
+  } catch(e) {
+    $("loadingMsg").textContent = "⚠️ Could not load config. Using default problems.";
+    setTimeout(()=>{
+      applyConfig({
+        standard, widaLevel:wida,
+        title:"Equation Builder", skill:"Practice",
+        twr:{ prompt: defaultTwr(wida) },
+        esolSupports:["Key words: equation, variable, solve, answer.","Check: substitute back."],
+        problemTypes:[
+          {type:"oneStepAdd",level:1},{type:"twoStep",level:2},{type:"evaluate",level:3}
+        ]
+      });
+    }, 1200);
+  }
+}
 
-  /** =========================
-   * Math helpers (accept decimals & fractions)
-   * ========================= */
-  function parseNumberFlexible(s){
-    const t = String(s||"").trim();
-    if(!t) return null;
+function defaultTwr(wida){
+  const w = String(wida||"").toLowerCase();
+  if(w.includes("1")||w.includes("2"))
+    return "I did ______ first.\nThen I did ______.\nMy answer is ______ because ______.";
+  if(w.includes("3")||w.includes("4"))
+    return "My strategy was ______ because ______.\nI solved by ______ then ______.\nI checked my answer by ______.";
+  return "Explain your strategy and justify each step.\nExplain how you verified your solution.";
+}
 
-    // allow leading/trailing spaces, commas not allowed
-    if (/^-?\d+(\.\d+)?$/.test(t)) return { value: Number(t), repr:t };
+function applyConfig(cfg){
+  CONFIG = cfg;
+  minWritingChars = (cfg.mastery && cfg.mastery.minWritingChars) || 40;
 
-    // fraction a/b
-    const m = t.match(/^(-?\d+)\s*\/\s*(-?\d+)$/);
-    if(m){
-      const a = Number(m[1]), b = Number(m[2]);
-      if(b === 0) return null;
-      return { value: a / b, repr: `${a}/${b}` };
-    }
+  // Header
+  $("uiTitle").textContent    = cfg.title || "Equation Builder";
+  $("uiMeta").textContent     = cfg.skill || "Adaptive practice";
+  $("uiStandard").textContent = cfg.standard || "—";
+  $("uiWida").textContent     = cfg.widaLevel || "—";
+  document.title              = (cfg.title || "Equation Builder") + " | EduWonderLab";
 
-    return null;
+  // Writing panel
+  $("twrPrompt").value    = (cfg.twr && cfg.twr.prompt) || defaultTwr(cfg.widaLevel);
+  $("esolSupports").value = (cfg.esolSupports||[]).join("\n");
+
+  // Rubric override if config provides one
+  if(cfg.rubric){
+    const r = cfg.rubric;
+    $("rubricBox").innerHTML = `<strong>Quick Success Criteria (4-point):</strong><br>
+      <strong>4</strong> ${r["4"]||"Excellent"}<br>
+      <strong>3</strong> ${r["3"]||"Good"}<br>
+      <strong>2</strong> ${r["2"]||"Developing"}<br>
+      <strong>1</strong> ${r["1"]||"Incomplete"}`;
   }
 
-  function nearlyEqual(a,b){
-    return Math.abs(a-b) < 1e-9;
+  $("loadingMsg").style.display = "none";
+  $("gameGrid").style.display   = "";
+
+  loadProblem();
+}
+
+/* ═══════════════════════════════════════════════
+   PROBLEM SELECTION (adaptive by level)
+═══════════════════════════════════════════════ */
+function pickGeneratorKey(){
+  // filter config problemTypes by current difficulty level
+  const types = (CONFIG.problemTypes||[]).filter(pt => pt.level <= difficulty);
+  const pool  = types.length ? types : (CONFIG.problemTypes||[]);
+
+  if(!pool.length) return "twoStep"; // absolute fallback
+
+  const chosen = pool[Math.floor(Math.random()*pool.length)];
+  const genKeys = TYPE_MAP[chosen.type] || ["twoStep"];
+  return genKeys[Math.floor(Math.random()*genKeys.length)];
+}
+
+function genProblem(){
+  // ramp difficulty
+  if(streak >= 4) difficulty = 3;
+  else if(streak >= 2) difficulty = 2;
+  else difficulty = 1;
+
+  const key = pickGeneratorKey();
+  const fn  = GEN[key];
+  if(!fn) return GEN.twoStep();
+
+  // for wordProblem type, pass a template from config if available
+  if(key === "wordProblem"){
+    const wpTypes = (CONFIG.problemTypes||[]).filter(pt=>pt.type==="wordProblem");
+    const tpl = wpTypes.length ? wpTypes[ri(0,wpTypes.length-1)].template : "Solve and explain.";
+    return fn(tpl);
   }
 
-  /** =========================
-   * Adaptive item generator (v1)
-   * Starts easy → ramps if correct.
-   * ========================= */
-  let streak = 0;
-  let difficulty = 1; // 1 easy, 2 medium, 3 harder
-  let current = null;
+  return fn();
+}
 
-  function genProblem(){
-    // ramp difficulty based on streak
-    if(streak >= 2) difficulty = 2;
-    if(streak >= 4) difficulty = 3;
-    if(streak === 0) difficulty = 1;
+/* ═══════════════════════════════════════════════
+   PROBLEM DISPLAY
+═══════════════════════════════════════════════ */
+function loadProblem(){
+  clearMsgs();
+  current = genProblem();
 
-    // types: one-step add/sub; one-step mult/div; two-step
-    const types = difficulty === 1 ? ["addsub","muldiv"] :
-                  difficulty === 2 ? ["muldiv","twoStep"] :
-                  ["twoStep","twoStepFrac"];
+  $("eqText").textContent  = current.text;
+  $("eqSub").textContent   = current.open
+    ? "Write your full answer in the panel on the right."
+    : "Find the value that makes this true.";
+  $("stepHint").textContent = current.hint || "";
+  $("ans").value = "";
+  $("btnNext").disabled = true;
+  $("uiStreak").textContent = String(streak);
+  $("uiLevel").textContent  = String(difficulty);
 
-    const pick = types[Math.floor(Math.random()*types.length)];
+  // show/hide numeric input
+  const isOpen = !!current.open;
+  $("numericInputs").style.display  = isOpen ? "none" : "";
+  $("openAnswerNote").style.display = isOpen ? "block" : "none";
+  $("ansLabel").textContent = current.label || "Answer:";
 
-    if(pick === "addsub"){
-      // x + a = b
-      const a = randInt(2,12);
-      const x = randInt(1,15);
-      const b = x + a;
-      return { text: `x + ${a} = ${b}`, answer: x, hint:"Subtract the constant from both sides." };
-    }
+  // For open-response with a known answer (e.g. compareIntegers), show it after check
+  if(!isOpen) $("ans").focus();
+}
 
-    if(pick === "muldiv"){
-      // ax = b
-      const a = randInt(2,9);
-      const x = randInt(2,12);
-      const b = a * x;
-      return { text: `${a}x = ${b}`, answer: x, hint:"Divide both sides by the coefficient." };
-    }
+/* ═══════════════════════════════════════════════
+   CHECK
+═══════════════════════════════════════════════ */
+function writingOk(){
+  return ($("twrResponse").value||"").trim().length >= minWritingChars;
+}
 
-    if(pick === "twoStep"){
-      // ax + c = b
-      const a = randInt(2,9);
-      const x = randInt(2,12);
-      const c = randInt(2,15);
-      const b = a*x + c;
-      return { text: `${a}x + ${c} = ${b}`, answer: x, hint:"Undo addition/subtraction first, then divide." };
-    }
+function check(){
+  clearMsgs();
 
-    // twoStepFrac: x/2 + c = b  OR  (3/4)x = b
-    const variant = Math.random() < 0.5 ? "half" : "fracCoef";
-    if(variant === "half"){
-      const x = randInt(2,18);
-      const c = randInt(1,10);
-      const b = x/2 + c;
-      // keep b .5-friendly
-      const bStr = Number.isInteger(b) ? String(b) : String(b);
-      return { text: `x/2 + ${c} = ${bStr}`, answer: x, hint:"Subtract c, then multiply by 2." };
-    } else {
-      const num = 3, den = 4;
-      const x = randInt(4,20);
-      const b = (num/den)*x;
-      const bStr = Number.isInteger(b) ? String(b) : String(b);
-      return { text: `(${num}/${den})x = ${bStr}`, answer: x, hint:"Multiply both sides by the reciprocal (4/3)." };
-    }
-  }
+  const isOpen = !!current.open;
 
-  function randInt(a,b){
-    return Math.floor(Math.random()*(b-a+1))+a;
-  }
-
-  function loadProblem(){
-    clearMsgs();
-    current = genProblem();
-    $("eqText").textContent = current.text;
-    $("stepHint").textContent = current.hint;
-    $("ans").value = "";
-    $("btnNext").disabled = true;
-    $("uiStreak").textContent = String(streak);
-    $("ans").focus();
-  }
-
-  /** =========================
-   * Writing gate
-   * ========================= */
-  function writingOk(){
-    const txt = ($("twrResponse").value || "").trim();
-    return txt.length >= 40;
-  }
-
-  /** =========================
-   * Check logic + feedback
-   * ========================= */
-  function check(){
-    clearMsgs();
-    const parsed = parseNumberFlexible($("ans").value);
-    if(!parsed){
-      setMsg("msgErr", true, "Enter a number like 5, 0.5, or a fraction like 1/2.");
+  if(isOpen){
+    // open-response: only writing gate matters
+    if(!writingOk()){
+      setMsg("msgWarn", true, `Write your explanation (at least ${minWritingChars} characters) to complete this round.`);
       return;
     }
-
-    const ok = nearlyEqual(parsed.value, current.answer);
-    if(ok){
-      // require writing to fully pass
-      if(!writingOk()){
-        setMsg("msgWarn", true, "Math is correct ✅\nNow write your explanation (at least ~40 characters) to complete the round.");
-        $("btnNext").disabled = true;
-        return;
-      }
-
-      streak++;
-      setMsg("msgOk", true, "Correct ✅\nYou solved it AND explained your thinking.\nClick Next.");
-      $("btnNext").disabled = false;
-    } else {
-      streak = 0;
-      // misconception-aware feedback (simple v1)
-      const msg = [
-        "Not yet.",
-        "Check your inverse operation:",
-        "• Undo addition/subtraction first",
-        "• Then undo multiplication/division",
-        "Also: substitute your x back into the equation to verify."
-      ].join("\n");
-      setMsg("msgErr", true, msg);
-      $("btnNext").disabled = true;
-    }
-
+    streak++;
+    const extra = current.openAnswer ? `\nExample answer: ${current.openAnswer}` : "";
+    setMsg("msgOk", true, "Nice work ✅\nYou explained your thinking.\nClick Next." + extra);
+    $("btnNext").disabled = false;
     $("uiStreak").textContent = String(streak);
+    return;
   }
 
-  function hint(){
-    clearMsgs();
-    setMsg("msgWarn", true, "Hint:\n" + current.hint + "\n\nTry writing your steps as you work.");
+  // numeric check
+  const val = parseAnswer($("ans").value);
+  if(val === null){
+    setMsg("msgErr", true, "Enter a number like 5, 0.5, or a fraction like 1/2.");
+    return;
   }
 
-  function reset(){
-    streak = 0;
-    $("twrResponse").value = "";
-    loadProblem();
-  }
+  const correct = nearEq(val, current.answer);
 
-  $("btnCheck").addEventListener("click", check);
-  $("btnHint").addEventListener("click", hint);
-  $("btnNext").addEventListener("click", loadProblem);
-  $("btnReset").addEventListener("click", reset);
-
-  // Copy/Clear writing
-  $("btnCopy").addEventListener("click", async ()=>{
-    try{
-      await navigator.clipboard.writeText($("twrResponse").value || "");
-      setMsg("msgWarn", true, "Copied response to clipboard.");
-    }catch(_){
-      setMsg("msgWarn", true, "Copy failed. Select and copy manually.");
+  if(correct){
+    if(!writingOk()){
+      setMsg("msgWarn", true, `Math is correct ✅\nNow write your explanation (at least ${minWritingChars} characters) to complete the round.`);
+      return;
     }
-  });
-  $("btnClear").addEventListener("click", ()=>{ $("twrResponse").value = ""; });
+    streak++;
+    setMsg("msgOk", true, "Correct ✅\nYou solved it AND explained your thinking.\nClick Next.");
+    $("btnNext").disabled = false;
+  } else {
+    streak = 0;
+    // Build misconception-aware message from config if available
+    let feedback = "Not yet — check your work:\n";
+    const tags = (CONFIG && CONFIG.misconceptionTags)||[];
+    if(tags.includes("ERR:InverseOps")||tags.includes("ERR:Balance"))
+      feedback += "• Undo addition/subtraction first, then multiplication/division\n• Whatever you do to one side, do to the other\n";
+    else if(tags.includes("ERR:PlaceValue")||tags.includes("ERR:DecimalShift"))
+      feedback += "• Check your decimal point placement\n• Align decimals before computing\n";
+    else if(tags.includes("ERR:ExponentMeaning"))
+      feedback += "• Remember: exponent means REPEATED MULTIPLICATION, not multiply base × exponent\n• Example: 3² = 3×3 = 9, NOT 3×2\n";
+    else if(tags.includes("ERR:InvertMultiply"))
+      feedback += "• To divide fractions: multiply by the RECIPROCAL (flip the second fraction)\n";
+    else
+      feedback += "• Re-read the problem carefully\n• Try working step by step\n";
+    feedback += "Also: substitute your answer back in to verify.";
+    setMsg("msgErr", true, feedback);
+    $("btnNext").disabled = true;
+  }
 
-  // enter key triggers check
-  $("ans").addEventListener("keydown", (e)=>{
-    if(e.key === "Enter"){ e.preventDefault(); check(); }
-  });
+  $("uiStreak").textContent = String(streak);
+  $("uiLevel").textContent  = String(difficulty);
+}
 
-  // boot
+function hint(){
+  clearMsgs();
+  const h = current ? current.hint : "Work step by step.";
+  setMsg("msgWarn", true, "Hint:\n" + h + "\n\nTry writing your steps as you work — it helps!");
+}
+
+function reset(){
+  streak = 0; difficulty = 1;
+  $("twrResponse").value = "";
   loadProblem();
+}
+
+/* ═══════════════════════════════════════════════
+   EVENT LISTENERS
+═══════════════════════════════════════════════ */
+$("btnCheck").addEventListener("click", check);
+$("btnHint").addEventListener("click", hint);
+$("btnNext").addEventListener("click", loadProblem);
+$("btnReset").addEventListener("click", reset);
+
+$("btnCopy").addEventListener("click", async ()=>{
+  try{ await navigator.clipboard.writeText($("twrResponse").value||""); setMsg("msgWarn",true,"Copied to clipboard."); }
+  catch(_){ setMsg("msgWarn",true,"Copy failed — select and copy manually."); }
+});
+$("btnClear").addEventListener("click", ()=>{ $("twrResponse").value=""; });
+$("ans").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); check(); } });
+
+// Also allow pressing Check when writing gate is satisfied after previously seeing the "write more" warning
+$("twrResponse").addEventListener("input", ()=>{
+  if(current && writingOk() && $("msgWarn").style.display==="block" && $("msgWarn").textContent.includes("explanation")){
+    clearMsgs();
+  }
+});
+
+/* ═══════════════════════════════════════════════
+   BOOT
+═══════════════════════════════════════════════ */
+loadConfig();
+
 })();
 </script>
-
 </body>
 </html>
