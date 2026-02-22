@@ -1,6 +1,0 @@
-window.EWL_CONFIG = {
-  APP_NAME: "EduWonderLab",
-  TEACHER_PIN: "1234",
-  VALID_CLASS_CODES: ["601","602","603"],
-  SESSION_TTL_MIN: 720
-};
