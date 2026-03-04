@@ -7,7 +7,10 @@
       "unit": "Unit 8",
       "ccss": ["6.EE.B.7"],
       "tags": ["equations", "one-step", "inverse operations"],
-      "url": "/equation-builder.html"
+      "url": "/equation-builder.html",
+      "description": "Interactive practice solving one-step equations using inverse operations.",
+      "gradeBand": "6",
+      "timeEstimateMinutes": 10
     },
     {
       "title": "Student Portal",
@@ -15,7 +18,9 @@
       "unit": "All",
       "ccss": [],
       "tags": ["student", "hub"],
-      "url": "/student.html"
+      "url": "/student.html",
+      "description": "Central hub where students can access all current games and activities.",
+      "gradeBand": "6-7"
     },
     {
       "title": "Teacher Portal",
@@ -23,7 +28,9 @@
       "unit": "All",
       "ccss": [],
       "tags": ["teacher", "dashboard"],
-      "url": "/teacher.html"
+      "url": "/teacher.html",
+      "description": "Teacher dashboard for launching games, viewing resources, and managing links.",
+      "gradeBand": "6-7"
     }
   ]
 }
