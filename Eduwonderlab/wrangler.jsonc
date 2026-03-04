@@ -1,8 +1,35 @@
-{
-  "name": "edu-wonder-lab",
-  "compatibility_date": "2026-02-22",
-  "main": "worker.js",
-  "assets": {
-    "directory": "./dist"
-  }
-}
+# wrangler.toml — EduWonderLab Cloudflare Pages configuration
+# Docs: https://developers.cloudflare.com/pages/functions/wrangler-configuration/
+
+name                  = "edu-wonder-lab"
+compatibility_date    = "2026-02-22"
+pages_build_output_dir = "./dist"
+
+# _worker.js is auto-discovered by Cloudflare Pages — no "main" needed.
+# If using standalone Workers instead of Pages, uncomment:
+# main = "_worker.js"
+
+# ---------- KV Namespace ----------
+# Bind the KV namespace used by _worker.js as env.EWL_DATA
+# 1. Create the namespace: wrangler kv:namespace create EWL_DATA
+# 2. Replace the id values below with the output IDs from that command.
+[[kv_namespaces]]
+binding  = "EWL_DATA"
+id       = "REPLACE_WITH_PRODUCTION_KV_ID"
+preview_id = "REPLACE_WITH_PREVIEW_KV_ID"   # used by wrangler dev / preview
+
+# ---------- Public Environment Variables ----------
+# Safe, non-secret values only. Secrets use: wrangler secret put SECRET_NAME
+[vars]
+VALID_CLASS_CODES = "601,602,603"  # comma-separated; validated server-side in _worker.js
+
+# ---------- Secrets (do NOT put values here) ----------
+# Set these once via CLI or Cloudflare Dashboard:
+#   wrangler secret put TEACHER_PIN
+# They will be available as env.TEACHER_PIN in your Worker at runtime.
+# Never commit secret values to this file or any file in your repo.
+
+# ---------- Build (optional, if using a build step) ----------
+# Uncomment and adapt if you have a build process (e.g., Vite, esbuild):
+# [build]
+# command = "npm run build"
